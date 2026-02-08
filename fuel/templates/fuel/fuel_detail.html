@@ -86,11 +86,32 @@
                         </div>
                     </div>
 
-                    {% if record.notes %}
+                    {% if record.notes or record.receipt %}
                     <div class="border-top pt-4 mt-2">
-                        <h5 class="fw-bold mb-3 text-muted text-uppercase small">Notes / Observations</h5>
-                        <div class="p-3 rounded bg-light border-start border-primary border-4">
-                            <p class="mb-0">{{ record.notes|linebreaksbr }}</p>
+                        <div class="row">
+                            {% if record.notes %}
+                            <div class="col-md-{% if record.receipt %}6{% else %}12{% endif %} mb-4">
+                                <h5 class="fw-bold mb-3 text-muted text-uppercase small">Notes / Observations</h5>
+                                <div class="p-3 rounded bg-light border-start border-primary border-4">
+                                    <p class="mb-0">{{ record.notes|linebreaksbr }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if record.receipt %}
+                            <div class="col-md-{% if record.notes %}6{% else %}12{% endif %} mb-4">
+                                <h5 class="fw-bold mb-3 text-muted text-uppercase small">Fuel Receipt</h5>
+                                <div class="p-2 border rounded bg-light text-center">
+                                    <a href="{{ record.receipt.url }}" target="_blank">
+                                        <img src="{{ record.receipt.url }}" alt="Receipt"
+                                            class="img-fluid rounded shadow-sm" style="max-height: 400px;">
+                                    </a>
+                                    <div class="mt-2">
+                                        <small class="text-muted"><i class="bi bi-zoom-in"></i> Click to enlarge</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endif %}

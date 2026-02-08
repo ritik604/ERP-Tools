@@ -147,7 +147,7 @@ def fuel_create(request):
         return redirect('dashboard')
     
     if request.method == 'POST':
-        form = FuelRecordForm(request.POST)
+        form = FuelRecordForm(request.POST, request.FILES)
         if form.is_valid():
             record = form.save()
             messages.success(request, f'Fuel record "{record.record_id}" created!')
@@ -185,7 +185,7 @@ def fuel_update(request, pk):
     record = get_object_or_404(FuelRecord, pk=pk)
     
     if request.method == 'POST':
-        form = FuelRecordForm(request.POST, instance=record)
+        form = FuelRecordForm(request.POST, request.FILES, instance=record)
         if form.is_valid():
             form.save()
             messages.success(request, f'Fuel record "{record.record_id}" updated!')

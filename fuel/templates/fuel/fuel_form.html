@@ -39,7 +39,7 @@
                     </div>
                 </div>
                 <div class="card-body p-4">
-                    <form method="POST" class="needs-validation">
+                    <form method="POST" enctype="multipart/form-data" class="needs-validation">
                         {% csrf_token %}
                         <div class="row">
                             <div class="col-12 col-md-6 mb-3">
@@ -56,13 +56,28 @@
                             <div class="col-6 col-md-4 mb-3">
                                 {{ form.quantity_liters|as_crispy_field }}
                             </div>
-                            <div class="col-12 col-md-4 mb-3">
-                                {{ form.price_per_liter|as_crispy_field }}
+                            <div class="col-6 col-md-4 mb-3">
+                                {{ form.total_cost|as_crispy_field }}
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
+                                {{ form.price_per_liter|as_crispy_field }}
+                            </div>
+                            <div class="col-12 col-md-6 mb-3">
                                 {{ form.vehicle|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                {{ form.receipt|as_crispy_field }}
+                                {% if record.receipt %}
+                                <div class="mt-2">
+                                    <p class="small text-muted mb-1">Current Receipt:</p>
+                                    <img src="{{ record.receipt.url }}" alt="Receipt" class="img-thumbnail"
+                                        style="max-height: 200px;">
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="mb-3">
@@ -83,6 +98,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const qtyInput = document.getElementById('id_quantity_liters');
+        const totalInput = document.getElementById('id_total_cost');
+        const rateInput = document.getElementById('id_price_per_liter');
+
+        function calculateRate() {
+            const qty = parseFloat(qtyInput.value);
+            const total = parseFloat(totalInput.value);
+
+            if (qty > 0 && total > 0) {
+                const rate = total / qty;
+                rateInput.value = rate.toFixed(2);
+            } else {
+                rateInput.value = '';
+            }
+        }
+
+        qtyInput.addEventListener('input', calculateRate);
+        totalInput.addEventListener('input', calculateRate);
+    });
+</script>
 
 <style>
     .breadcrumb-item+.breadcrumb-item::before {
