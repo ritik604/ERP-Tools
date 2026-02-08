@@ -82,6 +82,9 @@ def audit_list(request):
         'total_count': logs.count(),
     }
     
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'audit/audit_table_partial.html', context)
+    
     return render(request, 'audit/audit_list.html', context)
 
 

@@ -6,16 +6,8 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center mb-4">
     <div>
         <h1 class="h2 mb-1">Audit Trail</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item active">Audit Trail</li>
-            </ol>
-        </nav>
     </div>
 </div>
-
-
 
 <!-- Filters -->
 <div class="card mb-4">
@@ -26,139 +18,144 @@
     </div>
     <div class="collapse show" id="filterCollapse">
         <div class="card-body">
-            <form method="GET" class="row g-3">
-
-                <div class="col-md-2">
-                    <label class="form-label">Module</label>
-                    <select name="module" class="form-select">
+            <form id="auditFilterForm" onsubmit="applyFilters(); return false;" class="row g-2 align-items-center">
+                <div class="col-6 col-md-2">
+                    <select id="filterModule" class="form-select" aria-label="Select Module">
                         <option value="">All Modules</option>
                         {% for module in modules %}
                         <option value="{{ module }}" {% if filter_module == module %}selected{% endif %}>{{ module|title }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Action</label>
-                    <select name="action" class="form-select">
+                <div class="col-6 col-md-2">
+                    <select id="filterAction" class="form-select" aria-label="Select Action">
                         <option value="">All Actions</option>
                         {% for action_code, action_name in actions %}
                         <option value="{{ action_code }}" {% if filter_action == action_code %}selected{% endif %}>{{ action_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">User</label>
-                    <select name="user" class="form-select">
+                <div class="col-6 col-md-2">
+                    <select id="filterUser" class="form-select" aria-label="Select User">
                         <option value="">All Users</option>
                         {% for u in users %}
                         <option value="{{ u.id }}" {% if filter_user == u.id|stringformat:"i" %}selected{% endif %}>{{ u.username }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Date From</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ filter_date_from }}">
+                <div class="col-6 col-md-2">
+                    <input type="{% if filter_date_from %}date{% else %}text{% endif %}" id="filterDateFrom"
+                        class="form-control" value="{{ filter_date_from }}" placeholder="From Date"
+                        onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Date To</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ filter_date_to }}">
+                <div class="col-6 col-md-2">
+                    <input type="{% if filter_date_to %}date{% else %}text{% endif %}" id="filterDateTo"
+                        class="form-control" value="{{ filter_date_to }}" placeholder="To Date"
+                        onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'">
                 </div>
-                <div class="col-12 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-search me-1"></i> Apply
-                    </button>
-                    <a href="{% url 'audit:audit_list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
-                    <button type="submit" name="export" value="true" class="btn btn-outline-success">
-                        <i class="bi bi-download"></i>
-                    </button>
+                <div class="col-6 col-md-2">
+                    <div class="d-flex gap-2">
+                        <button type="button" onclick="applyFilters()" class="btn btn-primary flex-grow-1"
+                            title="Apply Filter">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <button type="button" onclick="resetFilters()" class="btn btn-outline-secondary flex-grow-1"
+                            title="Reset Filters">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button type="button" onclick="exportCSV(event)" class="btn btn-outline-success flex-grow-1"
+                            title="Export to CSV">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Audit Logs Table -->
-<div class="table-container">
-    <table class="table modern-table">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Module</th>
-                <th>Record</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in page_obj %}
-            <tr>
-                <td>
-                    <span class="text-muted">{{ log.timestamp|date:"d M Y" }}</span><br>
-                    <small class="text-muted">{{ log.timestamp|time:"H:i:s" }}</small>
-                </td>
-                <td>
-                    {% if log.user %}
-                    <strong>{{ log.user.username }}</strong><br>
-                    <small class="text-muted">{{ log.user.role }}</small>
-                    {% else %}
-                    <span class="text-muted">System</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {{ log.get_action_display }}
-                </td>
-                <td>
-                    <span class="fw-medium">{{ log.module|title }}</span><br>
-                    <small class="text-muted">{{ log.model_name }}</small>
-                </td>
-                <td>
-                    <span class="fw-medium">{{ log.record_repr|truncatechars:40 }}</span><br>
-                    <small class="text-muted">ID: {{ log.record_id }}</small>
-                </td>
-                <td>
-                    <a href="{% url 'audit:audit_detail' log.pk %}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> View
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center py-4 text-muted">
-                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                    No audit logs found
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div id="auditContainer">
+    {% include 'audit/audit_table_partial.html' %}
 </div>
 
-<!-- Pagination -->
-{% if page_obj.has_other_pages %}
-<nav class="mt-4">
-    <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-            <a class="page-link"
-                href="?page={{ page_obj.previous_page_number }}&q={{ filter_q }}&module={{ filter_module }}&action={{ filter_action }}&user={{ filter_user }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}">Previous</a>
-        </li>
-        {% endif %}
+{% endblock %}
 
-        <li class="page-item disabled">
-            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        </li>
+{% block extra_js %}
+<script>
+    function fetchPage(pageNumber = 1) {
+        const moduleVal = document.getElementById('filterModule').value;
+        const actionVal = document.getElementById('filterAction').value;
+        const userVal = document.getElementById('filterUser').value;
+        const dateFromVal = document.getElementById('filterDateFrom').value;
+        const dateToVal = document.getElementById('filterDateTo').value;
 
-        {% if page_obj.has_next %}
-        <li class="page-item">
-            <a class="page-link"
-                href="?page={{ page_obj.next_page_number }}&q={{ filter_q }}&module={{ filter_module }}&action={{ filter_action }}&user={{ filter_user }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}">Next</a>
-        </li>
-        {% endif %}
-    </ul>
-</nav>
-{% endif %}
+        const params = new URLSearchParams({
+            module: moduleVal,
+            action: actionVal,
+            user: userVal,
+            date_from: dateFromVal,
+            date_to: dateToVal,
+            page: pageNumber
+        });
 
+        const container = document.getElementById('auditContainer');
+        container.style.opacity = '0.5';
+        container.style.pointerEvents = 'none';
+
+        fetch(`${window.location.pathname}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.text())
+            .then(html => {
+                container.innerHTML = html;
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+            })
+            .catch(error => {
+                console.error('Error fetching audit logs:', error);
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+            });
+    }
+
+    function exportCSV(e) {
+        if (e) e.preventDefault();
+        const moduleVal = document.getElementById('filterModule').value;
+        const actionVal = document.getElementById('filterAction').value;
+        const userVal = document.getElementById('filterUser').value;
+        const dateFromVal = document.getElementById('filterDateFrom').value;
+        const dateToVal = document.getElementById('filterDateTo').value;
+
+        const params = new URLSearchParams({
+            module: moduleVal,
+            action: actionVal,
+            user: userVal,
+            date_from: dateFromVal,
+            date_to: dateToVal,
+            export: 'true'
+        });
+
+        window.location.href = `?${params.toString()}`;
+    }
+
+    function applyFilters() {
+        fetchPage(1);
+    }
+
+    function resetFilters() {
+        document.getElementById('auditFilterForm').reset();
+        // Manually reset values in case form reset doesn't clear value attribute? 
+        // Form reset clears to initial value. If page loaded with filters, initial value is filtered.
+        // We should clear values explicitly.
+        document.getElementById('filterModule').value = '';
+        document.getElementById('filterAction').value = '';
+        document.getElementById('filterUser').value = '';
+        document.getElementById('filterDateFrom').value = '';
+        document.getElementById('filterDateTo').value = '';
+
+        applyFilters();
+    }
+</script>
 {% endblock %}

@@ -14,28 +14,48 @@
     </div>
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-12">
-        <form id="vehicleFilterForm" class="d-flex gap-2" onsubmit="return false;">
-            <input type="text" id="vehSearch" class="form-control" placeholder="Search name, ID, plate..."
-                style="max-width: 300px;">
+<!-- Filters - Collapsible on Mobile -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" data-bs-toggle="collapse"
+        data-bs-target="#vehicleFilterCollapse" style="cursor: pointer;">
+        <span><i class="bi bi-funnel"></i> Filters</span>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse show" id="vehicleFilterCollapse">
+        <div class="card-body py-3">
+            <form id="vehicleFilterForm" onsubmit="return false;">
+                <div class="row g-2">
+                    <div class="col-12 col-md-5">
+                        <input type="text" id="vehSearch" class="form-control" placeholder="Search name, ID, plate...">
+                    </div>
 
-            <select id="vehType" class="form-select" style="max-width: 180px;">
-                <option value="">All Types</option>
-                {% for code, name in vehicle_types %}
-                <option value="{{ code }}">{{ name }}</option>
-                {% endfor %}
-            </select>
+                    <div class="col-6 col-md-3">
+                        <select id="vehType" class="form-select">
+                            <option value="">All Types</option>
+                            {% for code, name in vehicle_types %}
+                            <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-            <select id="vehSite" class="form-select" style="max-width: 200px;">
-                <option value="">All Sites</option>
-                {% for site in sites %}
-                <option value="{{ site.id }}">{{ site.name }}</option>
-                {% endfor %}
-            </select>
+                    <div class="col-6 col-md-3">
+                        <select id="vehSite" class="form-select">
+                            <option value="">All Sites</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}">{{ site.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-            <button type="button" onclick="resetVehicleFilters()" class="btn btn-outline-secondary">Reset</button>
-        </form>
+                    <div class="col-12 col-md-1">
+                        <button type="button" onclick="resetVehicleFilters()" class="btn btn-outline-secondary w-100"
+                            title="Reset">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
