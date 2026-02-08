@@ -1,0 +1,128 @@
+﻿{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}Project Sites{% endblock %}
+
+{% block content %}
+
+<div class="row pt-3 pb-2 mb-3 border-bottom">
+    <div class="col-md-6">
+        <h1 class="h2">Project Sites</h1>
+    </div>
+    <div class="col-md-6">
+        <div class="btn-toolbar mb-2 mb-md-0 float-end">
+            <a href="{% url 'projects:project_create' %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-plus-lg"></i> New Project Site
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form id="projectFilterForm" class="d-flex gap-2" onsubmit="return false;">
+            <input type="text" id="projSearch" class="form-control" placeholder="Search name, ID..."
+                style="max-width: 300px;">
+
+            <select id="projStatus" class="form-select" style="max-width: 200px;">
+                <option value="">All Statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ON_HOLD">On Hold</option>
+            </select>
+
+            <button type="button" onclick="resetProjectFilters()" class="btn btn-outline-secondary">Reset</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th scope="col">Site ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Budget</th>
+                <th scope="col">Expense</th>
+                <th scope="col">Progress</th>
+                <th scope="col">Start Date</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody id="projectTableBody">
+            {% for project in projects %}
+            <tr class="project-row" data-name="{{ project.name|lower }}" data-id="{{ project.site_id|lower }}"
+                data-status="{{ project.status }}">
+                <td class="fw-medium text-dark">{{ project.site_id }}</td>
+                <td>{{ project.name }}</td>
+                <td>{{ project.budget|to_inr }}</td>
+                <td>{{ project.calculated_expense|to_inr }}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="progress flex-grow-1 me-2" style="height: 6px; width: 60px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                style="width: {{ project.calculated_progress }}%"></div>
+                        </div>
+                        <span class="small text-muted">{{ project.calculated_progress|floatformat:0 }}%</span>
+                    </div>
+                </td>
+                <td>{{ project.start_date|date:"F d, Y" }}</td>
+                <td>
+                    {{ project.get_status_display|default:project.status|title }}
+                </td>
+                <td>
+                    <a href="{% url 'projects:project_detail' project.pk %}"
+                        class="btn btn-sm btn-outline-secondary">View/Update</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No projects found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function applyProjectFilters() {
+        const searchVal = document.getElementById('projSearch').value.toLowerCase();
+        const statusVal = document.getElementById('projStatus').value;
+
+        const rows = document.querySelectorAll('.project-row');
+
+        rows.forEach(row => {
+            const name = row.dataset.name;
+            const projId = row.dataset.id;
+            const status = row.dataset.status;
+
+            let show = true;
+
+            if (searchVal && !name.includes(searchVal) && !projId.includes(searchVal)) show = false;
+            if (statusVal && status !== statusVal) show = false;
+
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    function resetProjectFilters() {
+        document.getElementById('projectFilterForm').reset();
+        applyProjectFilters();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const inputs = ['projSearch', 'projStatus'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', applyProjectFilters);
+                el.addEventListener('change', applyProjectFilters);
+            }
+        });
+    });
+</script>
+{% endblock %}

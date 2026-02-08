@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Milestone - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Update Milestone</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Project
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">{{ milestone.name }}</h5>
+            </div>
+            <div class="card-body">
+                <!-- Single Form for Everything -->
+                <form method="post" action="{% url 'projects:milestone_update' project.pk milestone.id %}"
+                    enctype="multipart/form-data" id="milestone-form">
+                    {% csrf_token %}
+
+                    <!-- Hidden field to track images to delete -->
+                    <input type="hidden" name="delete_images" id="delete-images-input" value="">
+
+                    <!-- Existing Images Section -->
+                    {% if milestone.images.exists %}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Existing Images</label>
+                        <div class="row g-2 mb-2" id="existing-images">
+                            {% for img in milestone.images.all %}
+                            <div class="col-6 col-sm-4 col-md-3 image-container" data-image-id="{{ img.id }}"
+                                id="image-{{ img.id }}">
+                                <div class="position-relative">
+                                    <img src="{{ img.image.url }}" alt="Milestone Image"
+                                        class="img-thumbnail image-preview"
+                                        style="height: 100px; width: 100%; object-fit: cover;">
+                                    <button type="button"
+                                        class="btn btn-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center position-absolute delete-btn"
+                                        style="width: 28px; height: 28px; top: 5px; right: 5px;"
+                                        title="Mark for deletion" onclick="toggleImageDelete({{ img.id }})">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                    <div class="deleted-overlay position-absolute d-none"
+                                        style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                        <span class="text-white fw-bold">MARKED FOR DELETION</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text">Click <i class="bi bi-x-lg text-danger"></i> to mark images for deletion.
+                            Changes apply when you click Update.</div>
+                    </div>
+                    <hr>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div class="text-danger small">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.deadline.id_for_label }}" class="form-label">Deadline</label>
+                            {{ form.deadline }}
+                            {% if form.deadline.errors %}
+                            <div class="text-danger small">{{ form.deadline.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                            <div class="text-danger small">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.progress.id_for_label }}" class="form-label">Progress (%)</label>
+                        {{ form.progress }}
+                        {% if form.progress.errors %}
+                        <div class="text-danger small">{{ form.progress.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Enter a value between 0 and 100</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Add New Images</label>
+                        {{ form.images }}
+                        {% if form.images.errors %}
+                        <div class="text-danger small">{{ form.images.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Upload one or more images to add to this milestone</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Milestone</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    form input[type="text"],
+    form input[type="date"],
+    form input[type="number"],
+    form input[type="file"],
+    form textarea,
+    form select {
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #212529;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+
+    form textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .image-container.marked-for-delete .image-preview {
+        opacity: 0.3;
+    }
+
+    .image-container.marked-for-delete .deleted-overlay {
+        display: flex !important;
+    }
+
+    .image-container.marked-for-delete .delete-btn {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+
+    .image-container.marked-for-delete .delete-btn i::before {
+        content: "\F5DE";
+        /* bi-arrow-counterclockwise */
+    }
+</style>
+
+{% block extra_js %}
+<script>
+    // Track images marked for deletion
+    let imagesToDelete = [];
+
+    function toggleImageDelete(imageId) {
+        const container = document.getElementById('image-' + imageId);
+        const index = imagesToDelete.indexOf(imageId);
+
+        if (index === -1) {
+            // Mark for deletion
+            imagesToDelete.push(imageId);
+            container.classList.add('marked-for-delete');
+        } else {
+            // Unmark
+            imagesToDelete.splice(index, 1);
+            container.classList.remove('marked-for-delete');
+        }
+
+        // Update hidden input
+        document.getElementById('delete-images-input').value = imagesToDelete.join(',');
+    }
+</script>
+{% endblock %}
+{% endblock %}

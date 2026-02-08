@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}View Vehicle - {{ vehicle.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'vehicle_list' %}">Vehicles</a></li>
+                    <li class="breadcrumb-item active">{{ vehicle.name }}</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">Vehicle Details</h2>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{% url 'vehicle_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Main Vehicle Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <!-- Vehicle Header -->
+                    <div class="d-flex align-items-start mb-4 pb-4 border-bottom">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-4 d-flex align-items-center justify-content-center"
+                            style="width: 80px; height: 80px;">
+                            <i class="bi bi-truck text-primary" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h3 class="fw-bold mb-1">{{ vehicle.name }}</h3>
+                                    <div class="mb-2">
+                                        <span class="badge bg-secondary me-2">
+                                            {{ vehicle.get_vehicle_type_display }}
+                                        </span>
+                                        <span class="text-muted fw-medium me-2">{{ vehicle.vehicle_id }}</span>
+                                        <span
+                                            class="badge {% if vehicle.status == 'ACTIVE' %}bg-success-subtle text-success{% elif vehicle.status == 'MAINTENANCE' %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %} border rounded-pill">
+                                            {{ vehicle.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% if is_admin %}
+                                <div>
+                                    <a href="{% url 'vehicle_update' pk=vehicle.pk %}"
+                                        class="btn btn-sm btn-primary me-1" title="Update Details">
+                                        <i class="bi bi-pencil-square"></i> Update
+                                    </a>
+                                    <a href="{% url 'vehicle_delete' pk=vehicle.pk %}"
+                                        class="btn btn-sm btn-outline-danger" title="Delete Vehicle">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details Grid -->
+                    <h5 class="fw-bold mb-4 text-muted text-uppercase small">Technical & Financial Details</h5>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-bold mb-1">Plate Number</label>
+                            <p class="h6 mb-0">{{ vehicle.plate_number }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-bold mb-1">Assigned Site</label>
+                            <p class="h6 mb-0">
+                                {% if vehicle.assigned_site %}
+                                <span class="text-primary">{{ vehicle.assigned_site.name }}</span>
+                                {% else %}
+                                <span class="text-muted fst-italic">No site assigned</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-bold mb-1">Asset Cost</label>
+                            <p class="h6 mb-0">{{ vehicle.asset_cost|to_inr }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-bold mb-1">Last Maintenance</label>
+                            <p class="h6 mb-0">{{ vehicle.last_maintenance_date|date:"F d, Y"|default:"Never recorded"}}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small text-uppercase fw-bold mb-1">Created Date</label>
+                            <p class="h6 mb-0">{{ vehicle.created_at|date:"F d, Y" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Activity Log Section -->
+                    <div class="border-top pt-4 mt-2">
+                        <h5 class="fw-bold mb-4 text-muted text-uppercase small">System Information</h5>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center p-3 rounded bg-light">
+                                    <div class="me-3 text-muted"><i class="bi bi-clock-history fs-4"></i></div>
+                                    <div>
+                                        <small class="text-muted d-block uppercase fw-bold">Last record Update</small>
+                                        <span class="fw-medium text-dark">{{ vehicle.updated_at|date:"F d,Yh:iA"}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .breadcrumb-item+.breadcrumb-item::before {
+        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E");
+    }
+</style>
+{% endblock %}

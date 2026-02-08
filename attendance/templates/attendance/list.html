@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance History{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Attendance History</h1>
+</div>
+
+<div class="row mb-4">
+    <!-- Metrics -->
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center py-2">
+                <h6 class="card-subtitle mb-2 text-muted">Unique Employees</h6>
+                <h3 class="card-title text-primary">{{ unique_employees }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center py-2">
+                <h6 class="card-subtitle mb-2 text-muted">Attendance Rate</h6>
+                <h3 class="card-title text-success">{{ attendance_percentage }}%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Name</label>
+                <input type="text" name="name" class="form-control" value="{{ filter_name }}" placeholder="Search...">
+            </div>
+
+            {% if sites %}
+            <div class="col-md-3">
+                <label class="form-label">Site</label>
+                <select name="site" class="form-select">
+                    <option value="">All Sites</option>
+                    {% for s in sites %}
+                    <option value="{{ s.id }}" {% if filter_site == s.id %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col-md-2">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ filter_start }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ filter_end }}">
+            </div>
+
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-filter"></i> Filter</button>
+                <a href="{% url 'attendance_list' %}" class="btn btn-outline-secondary">Reset</a>
+                <button type="submit" name="export" value="true" class="btn btn-success"><i
+                        class="bi bi-file-earmark-spreadsheet"></i> Export</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if attendance_list %}
+<div class="table-container">
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Name</th>
+                <th scope="col">Site</th>
+                <th scope="col">Check-in</th>
+                <th scope="col">Verified</th>
+                <th scope="col">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance_list %}
+            <tr>
+                <td class="fw-medium text-dark">{{ record.date|date:"F d, Y" }}</td>
+                <td>{{ record.worker.get_full_name|default:record.worker.username }}</td>
+                <td>{{ record.site.name }}</td>
+                <td>{{ record.check_in_time|date:"h:i A" }}</td>
+                <td>
+                    {% if record.verified %}Yes{% else %}No{% endif %}
+                </td>
+                <td>{{ record.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">No attendance records found.</div>
+{% endif %}
+
+{% endblock %}

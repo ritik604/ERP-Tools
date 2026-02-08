@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mt-5">
+            <div class="card-header bg-primary text-white">
+                <h4>Mark Attendance</h4>
+            </div>
+            <div class="card-body text-center">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                {% if already_checked_in %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill"></i> You have already marked your attendance for today.
+                </div>
+                <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary">View History</a>
+                {% elif site %}
+                <p class="lead">You are assigned to site: <strong>{{ site.name }}</strong></p>
+                <p class="text-muted">Site Location: {{ site.latitude }}, {{ site.longitude }}</p>
+
+                <form method="post" id="attendanceForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="latitude" id="latitude">
+                    <input type="hidden" name="longitude" id="longitude">
+
+                    <div id="locationStatus" class="mb-3 text-info">
+                        Detecting your location...
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                        Confirm Check-In
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-warning">
+                    You are not assigned to any project site. Please contact your supervisor.
+                </div>
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const statusDiv = document.getElementById("locationStatus");
+        const submitBtn = document.getElementById("submitBtn");
+        const latInput = document.getElementById("latitude");
+        const lonInput = document.getElementById("longitude");
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    latInput.value = position.coords.latitude;
+                    lonInput.value = position.coords.longitude;
+                    statusDiv.innerHTML = `<span class="text-success"><i class="bi bi-geo-alt-fill"></i> Location detected!</span>`;
+                    submitBtn.disabled = false;
+                },
+                function (error) {
+                    let msg = "Error getting location.";
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg = "User denied the request for Geolocation. Please verify browser settings.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg = "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            msg = "The request to get user location timed out.";
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            msg = "An unknown error occurred.";
+                            break;
+                    }
+                    statusDiv.innerHTML = `<span class="text-danger">${msg}</span>`;
+                }
+            );
+        } else {
+            statusDiv.innerHTML = `<span class="text-danger">Geolocation is not supported by this browser.</span>`;
+        }
+    });
+</script>
+{% endblock %}

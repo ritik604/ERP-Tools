@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Vehicles{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Vehicles</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if is_admin %}
+        <a href="{% url 'vehicle_create' %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-plus-lg"></i> Add New Vehicle
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form id="vehicleFilterForm" class="d-flex gap-2" onsubmit="return false;">
+            <input type="text" id="vehSearch" class="form-control" placeholder="Search name, ID, plate..."
+                style="max-width: 300px;">
+
+            <select id="vehType" class="form-select" style="max-width: 180px;">
+                <option value="">All Types</option>
+                {% for code, name in vehicle_types %}
+                <option value="{{ code }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+
+            <select id="vehSite" class="form-select" style="max-width: 200px;">
+                <option value="">All Sites</option>
+                {% for site in sites %}
+                <option value="{{ site.id }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="button" onclick="resetVehicleFilters()" class="btn btn-outline-secondary">Reset</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th scope="col">Vehicle ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Plate Number</th>
+                <th scope="col">Type</th>
+                <th scope="col">Assigned Site</th>
+                <th scope="col">Last Maintenance</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="vehicleTableBody">
+            {% for veh in vehicles %}
+            <tr class="vehicle-row" data-name="{{ veh.name|lower }}" data-id="{{ veh.vehicle_id|lower }}"
+                data-plate="{{ veh.plate_number|lower }}" data-type="{{ veh.vehicle_type }}"
+                data-site="{{ veh.assigned_site.id|default:'' }}">
+                <td class="fw-medium text-dark">{{ veh.vehicle_id }}</td>
+                <td>{{ veh.name }}</td>
+                <td>{{ veh.plate_number }}</td>
+                <td>{{ veh.get_vehicle_type_display }}</td>
+                <td>{{ veh.assigned_site.name|default:"Unassigned" }}</td>
+                <td>{{ veh.last_maintenance_date|date:"F d, Y"|default:"-" }}</td>
+                <td>{{ veh.get_status_display }}</td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'vehicle_detail' pk=veh.pk %}"
+                            class="btn btn-sm btn-outline-secondary btn-table-action">
+                            View/Update
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No vehicles found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function applyVehicleFilters() {
+        const searchVal = document.getElementById('vehSearch').value.toLowerCase();
+        const typeVal = document.getElementById('vehType').value;
+        const siteVal = document.getElementById('vehSite').value;
+
+        const rows = document.querySelectorAll('.vehicle-row');
+
+        rows.forEach(row => {
+            const name = row.dataset.name;
+            const vehId = row.dataset.id;
+            const plate = row.dataset.plate;
+            const type = row.dataset.type;
+            const site = row.dataset.site;
+
+            let show = true;
+
+            if (searchVal && !name.includes(searchVal) && !vehId.includes(searchVal) && !plate.includes(searchVal)) show = false;
+            if (typeVal && type !== typeVal) show = false;
+            if (siteVal && site !== siteVal) show = false;
+
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    function resetVehicleFilters() {
+        document.getElementById('vehicleFilterForm').reset();
+        applyVehicleFilters();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const inputs = ['vehSearch', 'vehType', 'vehSite'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', applyVehicleFilters);
+                el.addEventListener('change', applyVehicleFilters);
+            }
+        });
+    });
+</script>
+{% endblock %}

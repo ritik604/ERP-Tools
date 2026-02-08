@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Method{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Create New Project Site</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 text-end">
+                    <button type="button" class="btn btn-outline-info btn-sm" id="getLocationBtn">
+                        <i class="bi bi-geo-alt-fill"></i> Use Current Location
+                    </button>
+                    <small id="locStatus" class="d-block text-muted"></small>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-3">
+                        <button class="btn btn-primary" type="submit">Save Project</button>
+                        <a href="{% url 'projects:project_list' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('getLocationBtn').addEventListener('click', function () {
+        const status = document.getElementById('locStatus');
+        const latField = document.getElementById('id_latitude');
+        const lonField = document.getElementById('id_longitude');
+
+        if (!navigator.geolocation) {
+            status.textContent = 'Geolocation is not supported by your browser';
+            return;
+        }
+
+        status.textContent = 'Locating...';
+
+        navigator.geolocation.getCurrentPosition(function (position) {
+            latField.value = position.coords.latitude;
+            lonField.value = position.coords.longitude;
+            status.textContent = 'Location set!';
+            status.className = 'd-block text-success';
+        }, function (error) {
+            status.textContent = 'Unable to retrieve your location';
+            status.className = 'd-block text-danger';
+        });
+    });
+</script>
+{% endblock %}

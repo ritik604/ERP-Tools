@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}Employees{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Employees</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'register' %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-person-plus-fill"></i> Add New Employee
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form id="employeeFilterForm" class="d-flex gap-2" onsubmit="return false;">
+            <input type="text" id="empSearch" class="form-control" placeholder="Search name, ID..."
+                style="max-width: 300px;">
+
+            {% if is_admin %}
+            <select id="empRole" class="form-select" style="max-width: 180px;">
+                <option value="">All Roles</option>
+                <option value="ADMIN">Admin</option>
+                <option value="SUPERVISOR">Supervisor</option>
+                <option value="WORKER">Worker</option>
+            </select>
+            {% endif %}
+
+            <select id="empSite" class="form-select" style="max-width: 200px;">
+                <option value="">All Sites</option>
+                {% for site in sites %}
+                <option value="{{ site.id }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="button" onclick="resetEmployeeFilters()" class="btn btn-outline-secondary">Reset</button>
+            <a href="{% url 'export_employees_csv' %}" id="exportEmpBtn" download="employees_report.csv"
+                class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Export</a>
+        </form>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th scope="col">Employee ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Role</th>
+                <th scope="col">Assigned Site</th>
+                <th scope="col">Salary</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="employeeTableBody">
+            {% for emp in employees %}
+            <tr class="employee-row" data-name="{{ emp.get_full_name|default:emp.username|lower }}"
+                data-id="{{ emp.employee_id|lower }}" data-role="{{ emp.role }}"
+                data-site="{{ emp.assigned_site.id|default:'' }}">
+                <td class="fw-medium text-dark">{{ emp.employee_id }}</td>
+                <td>{{ emp.get_full_name|default:emp.username }}</td>
+                <td>{{ emp.role }}</td>
+                <td>{{ emp.assigned_site.name|default:"Unassigned" }}</td>
+                <td>{% if emp.salary %}{{ emp.salary|to_inr }}{% else %}-{% endif %}</td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'employee_detail' pk=emp.pk %}" class="btn btn-sm btn-outline-secondary">
+                            View/Update
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No employees found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function applyEmployeeFilters() {
+        const searchVal = document.getElementById('empSearch').value.toLowerCase();
+        const roleVal = document.getElementById('empRole') ? document.getElementById('empRole').value : '';
+        const siteVal = document.getElementById('empSite').value;
+
+        const rows = document.querySelectorAll('.employee-row');
+
+        rows.forEach(row => {
+            const name = row.dataset.name;
+            const empId = row.dataset.id;
+            const role = row.dataset.role;
+            const site = row.dataset.site;
+
+            let show = true;
+
+            if (searchVal && !name.includes(searchVal) && !empId.includes(searchVal)) show = false;
+            if (roleVal && role !== roleVal) show = false;
+            if (siteVal && site !== siteVal) show = false;
+
+            row.style.display = show ? '' : 'none';
+        });
+
+        // Sync export button
+        const exportBtn = document.getElementById('exportEmpBtn');
+        const params = new URLSearchParams();
+        if (searchVal) params.append('search', searchVal);
+        if (roleVal) params.append('role', roleVal);
+        if (siteVal) params.append('site', siteVal);
+        exportBtn.href = `{% url 'export_employees_csv' %}?${params.toString()}`;
+    }
+
+    function resetEmployeeFilters() {
+        document.getElementById('employeeFilterForm').reset();
+        applyEmployeeFilters();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const inputs = ['empSearch', 'empRole', 'empSite'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', applyEmployeeFilters);
+                el.addEventListener('change', applyEmployeeFilters);
+            }
+        });
+    });
+</script>
+{% endblock %}

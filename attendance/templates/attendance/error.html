@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Error{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mt-5 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4>Access Error</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">{{ message }}</p>
+                <div class="mt-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

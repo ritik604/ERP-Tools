@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Fuel Tracking - Construction ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Fuel Tracking</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'fuel:fuel_create' %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-plus-lg"></i> Add Fuel Record
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form id="fuelFilterForm" class="d-flex flex-wrap gap-2" onsubmit="applyFuelFilters(); return false;">
+            <input type="text" id="filterQ" class="form-control" placeholder="Search ID, Vehicle or Project..."
+                style="max-width: 250px;" value="{{ filter_q }}">
+
+            <select id="filterProject" class="form-select" style="max-width: 180px;">
+                <option value="">All Projects</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}" {% if filter_project == p.id|stringformat:"i" %}selected{% endif %}>
+                    {{p.name }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="date" id="filterDateFrom" class="form-control" style="max-width: 160px;"
+                value="{{ filter_date_from }}">
+            <input type="date" id="filterDateTo" class="form-control" style="max-width: 160px;"
+                value="{{ filter_date_to }}">
+
+            <button type="button" onclick="applyFuelFilters()" class="btn btn-primary">Apply Filter</button>
+            <a href="{% url 'fuel:fuel_list' %}" class="btn btn-outline-secondary">Reset</a>
+            <a href="{% url 'fuel:fuel_export_csv' %}" id="fuelExportBtn" onclick="exportFuelCSV(event)"
+                download="fuel_report.csv" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+            </a>
+        </form>
+    </div>
+</div>
+
+<div id="fuelContainer">
+    {% include 'fuel/fuel_table_partial.html' %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function fetchFuelPage(pageNumber = 1) {
+        const qVal = document.getElementById('filterQ').value;
+        const projectVal = document.getElementById('filterProject').value;
+        const dateFromVal = document.getElementById('filterDateFrom').value;
+        const dateToVal = document.getElementById('filterDateTo').value;
+
+        const params = new URLSearchParams({
+            q: qVal,
+            project: projectVal,
+            date_from: dateFromVal,
+            date_to: dateToVal,
+            page: pageNumber
+        });
+
+        const container = document.getElementById('fuelContainer');
+        container.style.opacity = '0.5';
+        container.style.pointerEvents = 'none';
+
+        fetch(`${window.location.pathname}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.text())
+            .then(html => {
+                container.innerHTML = html;
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+
+                // Sync export form
+                document.getElementById('exportQ').value = qVal;
+            })
+            .catch(error => {
+                console.error('Error fetching fuel data:', error);
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+            });
+    }
+
+    function exportFuelCSV(e) {
+        if (e) e.preventDefault();
+        const qVal = document.getElementById('filterQ').value;
+        const projectVal = document.getElementById('filterProject').value;
+        const dateFromVal = document.getElementById('filterDateFrom').value;
+        const dateToVal = document.getElementById('filterDateTo').value;
+
+        const params = new URLSearchParams({
+            q: qVal,
+            project: projectVal,
+            date_from: dateFromVal,
+            date_to: dateToVal
+        });
+
+        window.location.href = `{% url 'fuel:fuel_export_csv' %}?${params.toString()}`;
+    }
+
+    function applyFuelFilters() {
+        fetchFuelPage(1);
+    }
+</script>
+{% endblock %}
