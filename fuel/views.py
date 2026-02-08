@@ -25,6 +25,11 @@ def fuel_list(request):
     fuel_type_filter = request.GET.get('fuel_type')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
+
+    if date_from is None and date_to is None:
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        date_from = today_str
+        date_to = today_str
     
     records = FuelRecord.objects.all().select_related('project', 'vehicle')
     
@@ -97,6 +102,11 @@ def export_fuel_csv(request):
     project_filter = request.GET.get('project')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
+
+    if date_from is None and date_to is None:
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        date_from = today_str
+        date_to = today_str
     
     records = FuelRecord.objects.all().select_related('project', 'vehicle')
     

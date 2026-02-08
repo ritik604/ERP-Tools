@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load currency_tags %}
+{% load date_tags %}
 
 {% block title %}View Vehicle - {{ vehicle.name }}{% endblock %}
 
@@ -89,11 +90,12 @@
                         </div>
                         <div class="col-md-4">
                             <label class="text-muted small text-uppercase fw-bold mb-1">Last Maintenance</label>
-                            <p class="h6 mb-0">{{ vehicle.last_maintenance_date|date:"F d, Y"|default:"Never recorded"}}</p>
+                            <p class="h6 mb-0">{{ vehicle.last_maintenance_date|format_date|default:"Never recorded"}}
+                            </p>
                         </div>
                         <div class="col-md-4">
                             <label class="text-muted small text-uppercase fw-bold mb-1">Created Date</label>
-                            <p class="h6 mb-0">{{ vehicle.created_at|date:"F d, Y" }}</p>
+                            <p class="h6 mb-0">{{ vehicle.created_at|format_date }}</p>
                         </div>
                     </div>
 
@@ -106,7 +108,7 @@
                                     <div class="me-3 text-muted"><i class="bi bi-clock-history fs-4"></i></div>
                                     <div>
                                         <small class="text-muted d-block uppercase fw-bold">Last record Update</small>
-                                        <span class="fw-medium text-dark">{{ vehicle.updated_at|date:"F d,Yh:iA"}}</span>
+                                        <span class="fw-medium text-dark">{{ vehicle.updated_at|format_datetime}}</span>
                                     </div>
                                 </div>
                             </div>

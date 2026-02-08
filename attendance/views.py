@@ -86,6 +86,11 @@ def attendance_list(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
+    if start_date is None and end_date is None:
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        start_date = today_str
+        end_date = today_str
+
     if name_query:
         queryset = queryset.filter(
             Q(worker__username__icontains=name_query) | 
@@ -159,6 +164,11 @@ def export_attendance_csv(request):
     site_id = request.GET.get('site')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+
+    if start_date is None and end_date is None:
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        start_date = today_str
+        end_date = today_str
 
     if name_query:
         queryset = queryset.filter(

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load currency_tags %}
 {% load static %}
+{% load date_tags %}
 
 {% block title %}Dashboard - Construction ERP{% endblock %}
 
@@ -86,7 +87,7 @@
         <a href="{% url 'attendance:mark_attendance' %}" class="btn btn-primary btn-lg">Check In Now</a>
     </div>
     <div class="card-footer">
-        Your last check-in was at: {{ last_checkin|date:"F d, Y h:i A"|default:"Never" }}
+        Your last check-in was at: {{ last_checkin|format_datetime|default:"Never" }}
     </div>
 </div>
 {% endif %}

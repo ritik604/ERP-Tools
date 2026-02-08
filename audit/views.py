@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import AuditLog
 from users.models import CustomUser
@@ -22,8 +23,13 @@ def audit_list(request):
     module_filter = request.GET.get('module', '')
     action_filter = request.GET.get('action', '')
     user_filter = request.GET.get('user', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    if date_from is None and date_to is None:
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        date_from = today_str
+        date_to = today_str
     
     # Check for export request
     if request.GET.get('export') == 'true':
@@ -113,8 +119,13 @@ def export_audit_csv(request):
     module_filter = request.GET.get('module', '')
     action_filter = request.GET.get('action', '')
     user_filter = request.GET.get('user', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    if date_from is None and date_to is None:
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        date_from = today_str
+        date_to = today_str
     
     logs = AuditLog.objects.all().select_related('user')
     

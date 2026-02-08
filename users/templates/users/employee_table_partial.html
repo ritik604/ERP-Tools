@@ -1,5 +1,5 @@
 <div class="table-container">
-    <table class="modern-table">
+    <table class="modern-table" id="employeeTable">
         <thead>
             <tr>
                 <th scope="col">Employee ID</th>
@@ -7,12 +7,16 @@
                 <th scope="col">Role</th>
                 <th scope="col">Assigned Site</th>
                 <th scope="col">Salary</th>
+                <th scope="col">Status</th>
                 <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody id="employeeTableBody">
-            {% for emp in page_obj %}
-            <tr class="employee-row">
+            {% for emp in employees %}
+            <tr class="employee-row"
+                data-name="{{ emp.get_full_name|default:emp.username|lower }} {{ emp.employee_id|lower }}"
+                data-role="{{ emp.role }}" data-site="{{ emp.assigned_site.id|default:'' }}"
+                data-status="{{ emp.is_active|yesno:'active,inactive' }}">
                 <td class="fw-medium text-dark">{{ emp.employee_id }}</td>
                 <td>{{ emp.get_full_name|default:emp.username }}</td>
                 <td>{{ emp.role }}</td>
@@ -20,6 +24,13 @@
                 <td>
                     {% load currency_tags %}
                     {% if emp.salary %}{{ emp.salary|to_inr }}{% else %}-{% endif %}
+                </td>
+                <td>
+                    {% if emp.is_active %}
+                    Active
+                    {% else %}
+                    Inactive
+                    {% endif %}
                 </td>
                 <td>
                     <div class="d-flex gap-2">
@@ -31,48 +42,9 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center py-4 text-muted">No employees found.</td>
+                <td colspan="7" class="text-center py-4 text-muted">No employees found.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-
-{% if page_obj.has_other_pages %}
-<div class="d-flex justify-content-between align-items-center mt-4">
-    <div class="text-muted small">
-        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} records
-    </div>
-    <nav aria-label="Page navigation">
-        <ul class="pagination pagination-sm mb-0">
-            {% if page_obj.has_previous %}
-            <li class="page-item">
-                <button class="page-link" onclick="fetchPage({{ page_obj.previous_page_number }})">Previous</button>
-            </li>
-            {% else %}
-            <li class="page-item disabled">
-                <span class="page-link">Previous</span>
-            </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-            {% if page_obj.number == num %}
-            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item"><button
-                    class="page-link" onclick="fetchPage({{ num }})">{{ num }}</button></li>
-                {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <button class="page-link" onclick="fetchPage({{ page_obj.next_page_number }})">Next</button>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Next</span>
-                </li>
-                {% endif %}
-        </ul>
-    </nav>
-</div>
-{% endif %}

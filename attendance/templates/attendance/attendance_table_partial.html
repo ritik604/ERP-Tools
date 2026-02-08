@@ -1,3 +1,4 @@
+{% load date_tags %}
 <div class="row g-3 mb-4">
     <!-- Metrics -->
     <div class="col-sm-6 col-lg-3">
@@ -63,10 +64,10 @@
         <tbody id="attendanceTableBody">
             {% for record in page_obj %}
             <tr>
-                <td class="fw-medium text-dark">{{ record.date|date:"F d, Y" }}</td>
+                <td class="fw-medium text-dark">{{ record.date|format_date }}</td>
                 <td>{{ record.worker.get_full_name|default:record.worker.username }}</td>
                 <td>{{ record.site.name }}</td>
-                <td>{{ record.check_in_time|date:"h:i A" }}</td>
+                <td>{{ record.check_in_time|format_time }}</td>
                 <td>
                     {% if record.verified %}Yes{% else %}No{% endif %}
                 </td>

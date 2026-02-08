@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load currency_tags %}
+{% load date_tags %}
 
 {% block title %}Record {{ record.record_id }} - Construction ERP{% endblock %}
 
@@ -40,7 +41,7 @@
                                 <div>
                                     <h3 class="fw-bold mb-1">{{ record.record_id }}</h3>
                                     <div class="mb-2">
-                                        <span class="text-muted fw-medium">Logged on {{ record.date|date:"F d,Y"}}</span>
+                                        <span class="text-muted fw-medium">Logged on {{ record.date|format_date}}</span>
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -126,7 +127,7 @@
                                     <div class="me-3 text-muted"><i class="bi bi-clock-history fs-4"></i></div>
                                     <div>
                                         <small class="text-muted d-block uppercase fw-bold">Created On</small>
-                                        <span class="fw-medium text-dark">{{ record.created_at|date:"F d,Yh:iA"}}</span>
+                                        <span class="fw-medium text-dark">{{ record.created_at|format_datetime }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -135,7 +136,7 @@
                                     <div class="me-3 text-muted"><i class="bi bi-pencil-square fs-4"></i></div>
                                     <div>
                                         <small class="text-muted d-block uppercase fw-bold">Last Updated</small>
-                                        <span class="fw-medium text-dark">{{ record.updated_at|date:"F d,Yh:iA"}}</span>
+                                        <span class="fw-medium text-dark">{{ record.updated_at|format_datetime }}</span>
                                     </div>
                                 </div>
                             </div>

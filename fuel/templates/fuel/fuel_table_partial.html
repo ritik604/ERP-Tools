@@ -1,4 +1,5 @@
 {% load currency_tags %}
+{% load date_tags %}
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-4">
         <div class="stat-card h-100">
@@ -68,7 +69,7 @@
         <tbody>
             {% for record in page_obj %}
             <tr>
-                <td>{{ record.date|date:"F d, Y" }}</td>
+                <td>{{ record.date|format_date }}</td>
                 <td>{{ record.project.name|default:"Global" }}</td>
                 <td>{{ record.vehicle|default:"-" }}</td>
                 <td>{{ record.get_fuel_type_display }}</td>

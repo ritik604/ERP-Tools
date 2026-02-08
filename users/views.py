@@ -74,43 +74,20 @@ def employee_list(request):
         # Supervisor sees only workers
         employees = CustomUser.objects.filter(role='WORKER').select_related('assigned_site')
     
-    # Filtering
-    search_query = request.GET.get('search', '')
-    role_filter = request.GET.get('role', '')
-    site_filter = request.GET.get('site', '')
-    
-    if search_query:
-        employees = employees.filter(
-            Q(username__icontains=search_query) |
-            Q(first_name__icontains=search_query) |
-            Q(last_name__icontains=search_query) |
-            Q(employee_id__icontains=search_query)
-        )
-    
-    if role_filter:
-        employees = employees.filter(role=role_filter)
-    
-    if site_filter:
-        employees = employees.filter(assigned_site_id=site_filter)
+    # Initial Load - Get ALL employees
+    employees = employees.order_by('employee_id')
     
     # Get all sites for filter dropdown
     sites = ProjectSite.objects.all()
 
-    # Pagination
-    employees = employees.order_by('employee_id')
-    paginator = Paginator(employees, 25)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
     context = {
-        'page_obj': page_obj,
-        'total_count': employees.count(),
+        'employees': employees, # Pass all employees
         'sites': sites,
-        'search_query': search_query,
-        'role_filter': role_filter,
-        'site_filter': site_filter,
+        # Pass empty/default filters if needed for UI state, or just let JS handle it
         'is_admin': request.user.role == 'ADMIN',
     }
+    
+    return render(request, 'users/employee_list.html', context)
     
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return render(request, 'users/employee_table_partial.html', context)
@@ -189,6 +166,7 @@ def export_employees_csv(request):
     search_query = request.GET.get('search', '')
     role_filter = request.GET.get('role', '')
     site_filter = request.GET.get('site', '')
+    status_filter = request.GET.get('status', 'active')
     
     if search_query:
         employees = employees.filter(
@@ -203,6 +181,11 @@ def export_employees_csv(request):
     
     if site_filter:
         employees = employees.filter(assigned_site_id=site_filter)
+
+    if status_filter == 'active':
+        employees = employees.filter(is_active=True)
+    elif status_filter == 'inactive':
+        employees = employees.filter(is_active=False)
     
     # Generate CSV
     response = HttpResponse(content_type='text/csv')

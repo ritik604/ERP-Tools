@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load date_tags %}
 
 {% block title %}Update Attendance{% endblock %}
 
@@ -33,7 +34,7 @@
                         </div>
                         <div>
                             <h5 class="fw-bold mb-0">Edit Attendance Information</h5>
-                            <p class="text-muted small mb-0">Modifying record for {{ record.worker.get_full_name|default:record.worker.username }} on {{ record.date }}</p>
+                            <p class="text-muted small mb-0">Modifying record for {{record.worker.get_full_name|default:record.worker.username }} on {{record.date|format_date }}</p>
                         </div>
                     </div>
                 </div>
@@ -41,11 +42,11 @@
                     <div class="row mb-4">
                         <div class="col-md-3">
                             <label class="text-muted small d-block">Worker</label>
-                            <span class="fw-bold">{{ record.worker.get_full_name|default:record.worker.username }}</span>
+                            <span class="fw-bold">{{ record.worker.get_full_name|default:record.worker.username}}</span>
                         </div>
                         <div class="col-md-3">
                             <label class="text-muted small d-block">Date</label>
-                            <span class="fw-bold">{{ record.date }}</span>
+                            <span class="fw-bold">{{ record.date|format_date }}</span>
                         </div>
                         <div class="col-md-3">
                             <label class="text-muted small d-block">Site</label>
@@ -53,7 +54,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="text-muted small d-block">Check-in</label>
-                            <span class="fw-bold">{{ record.check_in_time|date:"h:i A" }}</span>
+                            <span class="fw-bold">{{ record.check_in_time|format_time }}</span>
                         </div>
                     </div>
 

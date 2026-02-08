@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load currency_tags %}
+{% load date_tags %}
 
 {% block title %}My Profile - {{ employee.username }}{% endblock %}
 
@@ -74,7 +75,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="text-muted small text-uppercase fw-bold mb-1">Joining Date</label>
-                            <p class="h6 mb-0">{{ employee.date_joined|date:"F d, Y" }}</p>
+                            <p class="h6 mb-0">{{ employee.date_joined|format_date }}</p>
                         </div>
                         <div class="col-md-4">
                             <label class="text-muted small text-uppercase fw-bold mb-1">Salary</label>
@@ -95,7 +96,7 @@
                                     <div class="me-3 text-muted"><i class="bi bi-clock-history fs-4"></i></div>
                                     <div>
                                         <small class="text-muted d-block uppercase fw-bold">Last Profile Update</small>
-                                        <span class="fw-medium text-dark">{{ employee.updated_at|date:"F d, Y h:iA"}}</span>
+                                        <span class="fw-medium text-dark">{{ employee.updated_at|format_datetime}}</span>
                                     </div>
                                 </div>
                             </div>
@@ -104,7 +105,7 @@
                                     <div class="me-3 text-muted"><i class="bi bi-box-arrow-in-right fs-4"></i></div>
                                     <div>
                                         <small class="text-muted d-block uppercase fw-bold">Last Login</small>
-                                        <span class="fw-medium text-dark">{{ employee.last_login|date:"F d, Y h:iA"|default:"Never" }}</span>
+                                        <span class="fw-medium text-dark">{{employee.last_login|format_datetime|default:"Never" }}</span>
                                     </div>
                                 </div>
                             </div>

@@ -1,5 +1,6 @@
 ﻿{% extends 'base.html' %}
 {% load currency_tags %}
+{% load date_tags %}
 
 {% block title %}Project Sites{% endblock %}
 
@@ -93,7 +94,7 @@
                         <span class="small text-muted">{{ project.calculated_progress|floatformat:0 }}%</span>
                     </div>
                 </td>
-                <td>{{ project.start_date|date:"F d, Y" }}</td>
+                <td>{{ project.start_date|format_date }}</td>
                 <td>
                     {{ project.get_status_display|default:project.status|title }}
                 </td>

@@ -24,7 +24,7 @@
         <div class="card-body py-3">
             <form id="employeeFilterForm" onsubmit="applyFilters(); return false;">
                 <div class="row g-2 align-items-center">
-                    <div class="col-12 col-md-5">
+                    <div class="col-12 col-md-3">
                         <input type="text" id="filterSearch" class="form-control" placeholder="Search Name, ID..."
                             value="{{ search_query }}">
                     </div>
@@ -38,8 +38,18 @@
                             </option>
                             <option value="WORKER" {% if role_filter == 'WORKER' %}selected{% endif %}>Worker</option>
                         </select>
+                        </select>
                     </div>
                     {% endif %}
+
+                    <div class="col-6 col-md-2">
+                        <select id="filterStatus" class="form-select" aria-label="Select Status">
+                            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive
+                            </option>
+                        </select>
+                    </div>
 
                     <div class="col-6 col-md-{% if is_admin %}3{% else %}5{% endif %}">
                         <select id="filterSite" class="form-select" aria-label="Select Site">
@@ -52,13 +62,9 @@
 
                     <div class="col-6 col-md-2">
                         <div class="d-flex gap-2">
-                            <button type="button" onclick="applyFilters()" class="btn btn-primary flex-grow-1"
-                                title="Apply Filter">
-                                <i class="bi bi-search"></i>
-                            </button>
                             <button type="button" onclick="resetFilters()" class="btn btn-outline-secondary flex-grow-1"
-                                title="Reset Filters">
-                                <i class="bi bi-arrow-clockwise"></i>
+                                title="Reset">
+                                <i class="bi bi-x-lg"></i>
                             </button>
                             <button type="button" onclick="exportCSV(event)" class="btn btn-outline-success flex-grow-1"
                                 title="Export to CSV">
@@ -80,38 +86,53 @@
 
 {% block extra_js %}
 <script>
-    function fetchPage(pageNumber = 1) {
-        const searchVal = document.getElementById('filterSearch').value;
+    document.addEventListener('DOMContentLoaded', function () {
+        const filterSearch = document.getElementById('filterSearch');
+        const filterRole = document.getElementById('filterRole');
+        const filterSite = document.getElementById('filterSite');
+        const filterStatus = document.getElementById('filterStatus');
+
+        // Add event listeners
+        if (filterSearch) filterSearch.addEventListener('input', filterEmployees);
+        if (filterRole) filterRole.addEventListener('change', filterEmployees);
+        if (filterSite) filterSite.addEventListener('change', filterEmployees);
+        if (filterStatus) filterStatus.addEventListener('change', filterEmployees);
+
+        // Initial filter
+        filterEmployees();
+    });
+
+    function filterEmployees() {
+        const searchVal = document.getElementById('filterSearch').value.toLowerCase();
         const roleVal = document.getElementById('filterRole') ? document.getElementById('filterRole').value : '';
         const siteVal = document.getElementById('filterSite').value;
+        const statusVal = document.getElementById('filterStatus').value; // 'all', 'active', 'inactive'
 
-        const params = new URLSearchParams({
-            search: searchVal,
-            role: roleVal,
-            site: siteVal,
-            page: pageNumber
-        });
+        const rows = document.querySelectorAll('#employeeTableBody .employee-row');
 
-        const container = document.getElementById('employeeContainer');
-        container.style.opacity = '0.5';
-        container.style.pointerEvents = 'none';
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name') || '';
+            const role = row.getAttribute('data-role') || '';
+            const site = row.getAttribute('data-site') || '';
+            const status = row.getAttribute('data-status') || ''; // 'active' or 'inactive'
 
-        fetch(`${window.location.pathname}?${params.toString()}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+            let matchesSearch = name.toLowerCase().includes(searchVal);
+            let matchesRole = roleVal === '' || role === roleVal;
+            let matchesSite = siteVal === '' || site === siteVal;
+
+            let matchesStatus = true;
+            if (statusVal === 'active') {
+                matchesStatus = status === 'active';
+            } else if (statusVal === 'inactive') {
+                matchesStatus = status === 'inactive';
             }
-        })
-            .then(response => response.text())
-            .then(html => {
-                container.innerHTML = html;
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
-            })
-            .catch(error => {
-                console.error('Error fetching employees:', error);
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
-            });
+
+            if (matchesSearch && matchesRole && matchesSite && matchesStatus) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
     }
 
     function exportCSV(e) {
@@ -119,11 +140,13 @@
         const searchVal = document.getElementById('filterSearch').value;
         const roleVal = document.getElementById('filterRole') ? document.getElementById('filterRole').value : '';
         const siteVal = document.getElementById('filterSite').value;
+        const statusVal = document.getElementById('filterStatus').value;
 
         const params = new URLSearchParams({
             search: searchVal,
             role: roleVal,
-            site: siteVal
+            site: siteVal,
+            status: statusVal
         });
 
         // Use the separate export URL
@@ -131,17 +154,18 @@
     }
 
     function applyFilters() {
-        fetchPage(1);
+        filterEmployees();
     }
 
     function resetFilters() {
         document.getElementById('employeeFilterForm').reset();
-        // Manually clear values
+        // Manually clear values and defaults
         document.getElementById('filterSearch').value = '';
         if (document.getElementById('filterRole')) document.getElementById('filterRole').value = '';
         document.getElementById('filterSite').value = '';
+        document.getElementById('filterStatus').value = 'active';
 
-        applyFilters();
+        filterEmployees();
     }
 </script>
 {% endblock %}

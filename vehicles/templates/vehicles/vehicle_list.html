@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load date_tags %}
 
 {% block title %}Vehicles{% endblock %}
 
@@ -83,7 +84,7 @@
                 <td>{{ veh.plate_number }}</td>
                 <td>{{ veh.get_vehicle_type_display }}</td>
                 <td>{{ veh.assigned_site.name|default:"Unassigned" }}</td>
-                <td>{{ veh.last_maintenance_date|date:"F d, Y"|default:"-" }}</td>
+                <td>{{ veh.last_maintenance_date|format_date|default:"-" }}</td>
                 <td>{{ veh.get_status_display }}</td>
                 <td>
                     <div class="d-flex gap-2">
