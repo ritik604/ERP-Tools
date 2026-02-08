@@ -7,6 +7,8 @@ from django.db.models.functions import Coalesce
 from .models import ProjectSite, Milestone, MilestoneImage
 from .forms import ProjectSiteForm, MilestoneForm
 from fuel.models import FuelRecord
+import csv
+from django.http import HttpResponse
 
 @login_required
 def project_list(request):
@@ -130,14 +132,21 @@ def project_update(request, pk):
         return redirect('dashboard')
     
     project = get_object_or_404(ProjectSite, pk=pk)
+    
     if request.method == 'POST':
         form = ProjectSiteForm(request.POST, instance=project)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Project "{project.name}" updated successfully!')
+            messages.success(request, f'Project Site "{project.name}" updated!')
             return redirect('projects:project_detail', pk=pk)
+    else:
+        form = ProjectSiteForm(instance=project)
     
-    return redirect('projects:project_detail', pk=pk)
+    return render(request, 'projects/project_form.html', {
+        'form': form,
+        'project': project,
+        'is_update': True
+    })
 
 @login_required
 def milestone_update(request, pk, milestone_id):
@@ -210,3 +219,36 @@ def project_delete(request, pk):
         return redirect('projects:project_list')
         
     return render(request, 'projects/project_confirm_delete.html', {'project': project})
+
+@login_required
+def export_projects_csv(request):
+    """View for exporting project site data to CSV."""
+    if request.user.role != 'ADMIN':
+        messages.error(request, "Access Denied.")
+        return redirect('dashboard')
+        
+    query = request.GET.get('q')
+    status_filter = request.GET.get('status')
+    
+    projects = ProjectSite.objects.all()
+    if query:
+        projects = projects.filter(Q(name__icontains=query) | Q(site_id__icontains=query))
+    if status_filter:
+        projects = projects.filter(status=status_filter)
+        
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="projects_report.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Site ID', 'Name', 'Budget', 'Status', 'Start Date'])
+    
+    for proj in projects:
+        writer.writerow([
+            proj.site_id,
+            proj.name,
+            proj.budget,
+            proj.get_status_display(),
+            proj.start_date.strftime("%Y-%m-%d") if proj.start_date else ""
+        ])
+        
+    return response

@@ -34,7 +34,15 @@ def mark_attendance(request):
         site_loc = (assigned_site.latitude, assigned_site.longitude)
         distance = geodesic(worker_loc, site_loc).km
         
-        verified = distance <= 1.0
+        # Block check-in if more than 1km away from site
+        if distance > 1.0:
+            error_msg = f"You are {distance:.2f} km away from the site. Attendance can only be marked within 1 km of your assigned site."
+            return render(request, 'attendance/mark_attendance.html', {
+                'error': error_msg,
+                'site': assigned_site,
+                'distance': round(distance, 2),
+                'too_far': True
+            })
         
         Attendance.objects.create(
             worker=user,
@@ -44,7 +52,7 @@ def mark_attendance(request):
             status='PRESENT',
             latitude=lat,
             longitude=lon,
-            verified=verified
+            verified=True  # Always verified since we only allow check-in within 1km
         )
         return redirect('attendance:attendance_list')
 

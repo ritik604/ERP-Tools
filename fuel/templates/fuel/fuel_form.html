@@ -42,21 +42,21 @@
                     <form method="POST" class="needs-validation">
                         {% csrf_token %}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 {{ form.project|as_crispy_field }}
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-12 col-md-6 mb-3">
                                 {{ form.date|as_crispy_field }}
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-6 col-md-4 mb-3">
                                 {{ form.fuel_type|as_crispy_field }}
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-6 col-md-4 mb-3">
                                 {{ form.quantity_liters|as_crispy_field }}
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-12 col-md-4 mb-3">
                                 {{ form.price_per_liter|as_crispy_field }}
                             </div>
                         </div>
@@ -70,9 +70,10 @@
                         </div>
 
                         <hr class="my-4">
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{% url 'fuel:fuel_list' %}" class="btn btn-light px-4">Cancel</a>
-                            <button type="submit" class="btn btn-primary px-5">
+                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
+                            <a href="{% url 'fuel:fuel_list' %}"
+                                class="btn btn-light px-4 order-2 order-md-1">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-5 order-1 order-md-2">
                                 <i class="bi bi-save"></i> {% if record %}Update Record{% else %}Save Record{% endif %}
                             </button>
                         </div>

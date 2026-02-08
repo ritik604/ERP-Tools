@@ -13,32 +13,56 @@
     </div>
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-12">
-        <form id="employeeFilterForm" class="d-flex gap-2" onsubmit="return false;">
-            <input type="text" id="empSearch" class="form-control" placeholder="Search name, ID..."
-                style="max-width: 300px;">
+<!-- Filters - Collapsible on Mobile -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" data-bs-toggle="collapse"
+        data-bs-target="#employeeFilterCollapse" style="cursor: pointer;">
+        <span><i class="bi bi-funnel"></i> Filters</span>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse show" id="employeeFilterCollapse">
+        <div class="card-body py-3">
+            <form id="employeeFilterForm" onsubmit="return false;">
+                <div class="row g-2">
+                    <div class="col-12 col-md-5">
+                        <input type="text" id="empSearch" class="form-control" placeholder="Search Name, ID...">
+                    </div>
 
-            {% if is_admin %}
-            <select id="empRole" class="form-select" style="max-width: 180px;">
-                <option value="">All Roles</option>
-                <option value="ADMIN">Admin</option>
-                <option value="SUPERVISOR">Supervisor</option>
-                <option value="WORKER">Worker</option>
-            </select>
-            {% endif %}
+                    {% if is_admin %}
+                    <div class="col-6 col-md-2">
+                        <select id="empRole" class="form-select">
+                            <option value="">All Roles</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="SUPERVISOR">Supervisor</option>
+                            <option value="WORKER">Worker</option>
+                        </select>
+                    </div>
+                    {% endif %}
 
-            <select id="empSite" class="form-select" style="max-width: 200px;">
-                <option value="">All Sites</option>
-                {% for site in sites %}
-                <option value="{{ site.id }}">{{ site.name }}</option>
-                {% endfor %}
-            </select>
+                    <div class="col-6 col-md-{% if is_admin %}3{% else %}5{% endif %}">
+                        <select id="empSite" class="form-select">
+                            <option value="">All Sites</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}">{{ site.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-            <button type="button" onclick="resetEmployeeFilters()" class="btn btn-outline-secondary">Reset</button>
-            <a href="{% url 'export_employees_csv' %}" id="exportEmpBtn" download="employees_report.csv"
-                class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Export</a>
-        </form>
+                    <div class="col-6 col-md-2">
+                        <div class="d-flex gap-2">
+                            <button type="button" onclick="resetEmployeeFilters()"
+                                class="btn btn-outline-secondary flex-grow-1" title="Reset">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                            <a href="{% url 'export_employees_csv' %}" id="exportEmpBtn" download="employees_report.csv"
+                                class="btn btn-outline-success flex-grow-1" title="Export CSV">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

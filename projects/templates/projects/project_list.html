@@ -18,21 +18,47 @@
     </div>
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-12">
-        <form id="projectFilterForm" class="d-flex gap-2" onsubmit="return false;">
-            <input type="text" id="projSearch" class="form-control" placeholder="Search name, ID..."
-                style="max-width: 300px;">
+<!-- Filters - Collapsible on Mobile -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" data-bs-toggle="collapse"
+        data-bs-target="#projectFilterCollapse" style="cursor: pointer;">
+        <span><i class="bi bi-funnel"></i> Filters</span>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse show" id="projectFilterCollapse">
+        <div class="card-body py-3">
+            <form id="projectFilterForm" onsubmit="return false;">
+                <div class="row g-2">
+                    <div class="col-12 col-md-5">
+                        <input type="text" id="projSearch" class="form-control"
+                            placeholder="Search Project Name, Site ID...">
+                    </div>
 
-            <select id="projStatus" class="form-select" style="max-width: 200px;">
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="ON_HOLD">On Hold</option>
-            </select>
+                    <div class="col-6 col-md-5">
+                        <select id="projStatus" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="ON_HOLD">On Hold</option>
+                        </select>
+                    </div>
 
-            <button type="button" onclick="resetProjectFilters()" class="btn btn-outline-secondary">Reset</button>
-        </form>
+                    <div class="col-6 col-md-2">
+                        <div class="d-flex gap-2">
+                            <button type="button" onclick="resetProjectFilters()"
+                                class="btn btn-outline-secondary flex-grow-1" title="Reset">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                            <a href="{% url 'projects:project_export_csv' %}" id="exportProjBtn"
+                                download="projects_report.csv" class="btn btn-outline-success flex-grow-1"
+                                title="Export CSV">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -107,6 +133,13 @@
 
             row.style.display = show ? '' : 'none';
         });
+
+        // Sync export button
+        const exportBtn = document.getElementById('exportProjBtn');
+        const params = new URLSearchParams();
+        if (searchVal) params.append('q', searchVal);
+        if (statusVal) params.append('status', statusVal);
+        exportBtn.href = `{% url 'projects:project_export_csv' %}?${params.toString()}`;
     }
 
     function resetProjectFilters() {

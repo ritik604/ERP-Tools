@@ -1,31 +1,100 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Create Method{% endblock %}
+{% block title %}{% if is_update %}Edit Project: {{ project.name }}{% else %}New Project{% endif %}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card mt-4">
-            <div class="card-header bg-primary text-white">
-                <h4>Create New Project Site</h4>
-            </div>
-            <div class="card-body">
-                <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-outline-info btn-sm" id="getLocationBtn">
-                        <i class="bi bi-geo-alt-fill"></i> Use Current Location
-                    </button>
-                    <small id="locStatus" class="d-block text-muted"></small>
-                </div>
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Projects</a></li>
+                    {% if is_update %}
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_detail' project.pk %}">{{ project.name }}</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active" aria-current="page">{% if is_update %}Update{% else %}New
+                        Project{% endif %}</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">{% if is_update %}Update Project Details{% else %}Create New Project{% endif %}
+            </h2>
+        </div>
+        <div>
+            <a href="{% if is_update %}{% url 'projects:project_detail' project.pk %}{% else %}{% url 'projects:project_list' %}{% endif %}"
+                class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+        </div>
+    </div>
 
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    <div class="d-grid gap-2 mt-3">
-                        <button class="btn btn-primary" type="submit">Save Project</button>
-                        <a href="{% url 'projects:project_list' %}" class="btn btn-secondary">Cancel</a>
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
+                                <i
+                                    class="bi {% if is_update %}bi-pencil-square{% else %}bi-plus-circle{% endif %} text-primary h4 mb-0"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-0">{% if is_update %}Edit Project Site{% else %}New Project{% endif %} Information</h5>
+                                <p class="text-muted small mb-0">{% if is_update %}Modifying record for {{ project.name }}{% else %}Define a new construction site location{% endif %}</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="getLocationBtn">
+                            <i class="bi bi-geo-alt-fill me-2"></i>Detect Location
+                        </button>
                     </div>
-                </form>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.latitude|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.longitude|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.budget|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.status|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.start_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.end_date|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% if is_update %}{% url 'projects:project_detail' project.pk %}{% else %}{% url 'projects:project_list' %}{% endif %}"
+                                class="btn btn-light px-4">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5">
+                                <i class="bi bi-save"></i> {% if is_update %}Update Record{% else %}Save Record{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -33,26 +102,60 @@
 
 <script>
     document.getElementById('getLocationBtn').addEventListener('click', function () {
-        const status = document.getElementById('locStatus');
+        const btn = this;
         const latField = document.getElementById('id_latitude');
         const lonField = document.getElementById('id_longitude');
 
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>...';
+
         if (!navigator.geolocation) {
-            status.textContent = 'Geolocation is not supported by your browser';
+            alert('Geolocation is not supported by your browser');
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
             return;
         }
 
-        status.textContent = 'Locating...';
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                latField.value = position.coords.latitude.toFixed(6);
+                lonField.value = position.coords.longitude.toFixed(6);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Set!';
+                btn.classList.replace('btn-outline-primary', 'btn-success');
+                btn.classList.add('text-white');
 
-        navigator.geolocation.getCurrentPosition(function (position) {
-            latField.value = position.coords.latitude;
-            lonField.value = position.coords.longitude;
-            status.textContent = 'Location set!';
-            status.className = 'd-block text-success';
-        }, function (error) {
-            status.textContent = 'Unable to retrieve your location';
-            status.className = 'd-block text-danger';
-        });
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.classList.replace('btn-success', 'btn-outline-primary');
+                    btn.classList.remove('text-white');
+                }, 3000);
+            },
+            function (error) {
+                let msg = 'Unable to retrieve your location';
+                if (error.code === 1) msg = "Location access denied.";
+                alert(msg);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
     });
 </script>
+
+<style>
+    .breadcrumb-item+.breadcrumb-item::before {
+        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E");
+    }
+
+    .card {
+        border-radius: 12px;
+    }
+
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+</style>
 {% endblock %}

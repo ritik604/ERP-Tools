@@ -7,34 +7,61 @@
     <h1 class="h2">Attendance History</h1>
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-12">
-        <form id="attendanceFilterForm" class="d-flex gap-2" onsubmit="applyFilters(); return false;">
-            <input type="text" id="filterName" class="form-control" style="max-width: 200px;" placeholder="Name..."
-                value="{{ filter_name }}">
+<!-- Filters - Collapsible on Mobile -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2" data-bs-toggle="collapse"
+        data-bs-target="#attendanceFilterCollapse" style="cursor: pointer;">
+        <span><i class="bi bi-funnel"></i> Filters</span>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse show" id="attendanceFilterCollapse">
+        <div class="card-body py-3">
+            <form id="attendanceFilterForm" onsubmit="applyFilters(); return false;">
+                <div class="row g-2">
+                    <div class="col-12 col-md-3">
+                        <input type="text" id="filterName" class="form-control" placeholder="Search Name..."
+                            value="{{ filter_name }}">
+                    </div>
 
-            {% if sites %}
-            <select id="filterSite" class="form-select" style="max-width: 200px;">
-                <option value="">All Sites</option>
-                {% for s in sites %}
-                <option value="{{ s.id }}" {% if filter_site == s.id|stringformat:'i' %}selected{% endif %}>{{ s.name }}
-                </option>
-                {% endfor %}
-            </select>
-            {% endif %}
+                    {% if sites %}
+                    <div class="col-6 col-md-2">
+                        <select id="filterSite" class="form-select">
+                            <option value="">All Sites</option>
+                            {% for s in sites %}
+                            <option value="{{ s.id }}" {% if filter_site == s.id|stringformat:'i' %}selected{% endif %}>
+                                {{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
 
-            <input type="date" id="filterStart" class="form-control" style="max-width: 160px;" title="Start Date"
-                value="{{ filter_start }}">
-            <input type="date" id="filterEnd" class="form-control" style="max-width: 160px;" title="End Date"
-                value="{{ filter_end }}">
+                    <div class="col-6 col-md-2">
+                        <input type="date" id="filterStart" class="form-control" value="{{ filter_start }}"
+                            placeholder="From">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <input type="date" id="filterEnd" class="form-control" value="{{ filter_end }}"
+                            placeholder="To">
+                    </div>
 
-            <button type="button" onclick="applyFilters()" class="btn btn-primary">Apply Filter</button>
-            <button type="button" onclick="resetFilters()" class="btn btn-outline-secondary">Reset</button>
-            <a href="{% url 'attendance:attendance_export_csv' %}" id="exportBtn" onclick="exportCSV(event)"
-                download="attendance_report.csv" class="btn btn-outline-success">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
-            </a>
-        </form>
+                    <div class="col-6 col-md-3">
+                        <div class="d-flex gap-2">
+                            <button type="button" onclick="applyFilters()" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-search"></i> <span class="d-none d-md-inline">Apply</span>
+                            </button>
+                            <button type="button" onclick="resetFilters()" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                            <a href="{% url 'attendance:attendance_export_csv' %}" id="exportBtn"
+                                onclick="exportCSV(event)" download="attendance_report.csv"
+                                class="btn btn-outline-success">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
