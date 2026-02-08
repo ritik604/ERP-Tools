@@ -20,7 +20,7 @@ def dashboard_view(request):
     if user.role == 'ADMIN':
         context['title'] = "Admin Dashboard"
         context['total_projects'] = ProjectSite.objects.filter(status='ACTIVE').count()
-        context['total_employees'] = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).exclude(is_superuser=True).count()
+        context['total_employees'] = CustomUser.objects.filter(role__in=['ADMIN', 'SUPERVISOR', 'WORKER']).count()
         context['total_budget'] = ProjectSite.objects.aggregate(Sum('budget'))['budget__sum'] or 0
     elif user.role == 'SUPERVISOR':
         context['title'] = "Supervisor Dashboard"
@@ -69,7 +69,7 @@ def employee_list(request):
         return redirect('dashboard')
     
     if request.user.role == 'ADMIN':
-        employees = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).exclude(is_superuser=True).select_related('assigned_site')
+        employees = CustomUser.objects.all().select_related('assigned_site')
     else:
         # Supervisor sees only workers
         employees = CustomUser.objects.filter(role='WORKER').select_related('assigned_site')
@@ -181,7 +181,7 @@ def export_employees_csv(request):
         return redirect('dashboard')
     
     if request.user.role == 'ADMIN':
-        employees = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).exclude(is_superuser=True).select_related('assigned_site')
+        employees = CustomUser.objects.all().select_related('assigned_site')
     else:
         employees = CustomUser.objects.filter(role='WORKER').select_related('assigned_site')
     
