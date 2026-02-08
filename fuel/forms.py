@@ -15,6 +15,7 @@ class FuelRecordForm(forms.ModelForm):
             'date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
             'price_per_liter': forms.NumberInput(attrs={'readonly': 'readonly'}),
+            'receipt': forms.FileInput(attrs={'accept': 'image/*', 'class': 'form-control'}),
         }
         labels = {
             'quantity_liters': 'Fuel Quantity (Liters)',

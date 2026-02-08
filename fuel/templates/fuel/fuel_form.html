@@ -70,8 +70,10 @@
                         </div>
                         <div class="row">
                             <div class="col-12 mb-3">
-                                {{ form.receipt|as_crispy_field }}
-                                {% if record.receipt %}
+                                <label for="{{ form.receipt.id_for_label }}" class="form-label">Receipt</label>
+                                {{ form.receipt }}
+                                {{ form.receipt.errors }}
+                                {% if record and record.receipt and record.receipt.name %}
                                 <div class="mt-2">
                                     <p class="small text-muted mb-1">Current Receipt:</p>
                                     <img src="{{ record.receipt.url }}" alt="Receipt" class="img-thumbnail"
