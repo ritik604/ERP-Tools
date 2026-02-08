@@ -18,10 +18,8 @@ def dashboard_view(request):
     context = {}
     
     if user.role == 'ADMIN':
-        context['title'] = "Admin Dashboard"
-        context['total_projects'] = ProjectSite.objects.filter(status='ACTIVE').count()
-        context['total_employees'] = CustomUser.objects.filter(role__in=['ADMIN', 'SUPERVISOR', 'WORKER']).count()
-        context['total_budget'] = ProjectSite.objects.aggregate(Sum('budget'))['budget__sum'] or 0
+        # Redirect admin users to the new project-based dashboard
+        return redirect('projects:project_list')
     elif user.role == 'SUPERVISOR':
         context['title'] = "Supervisor Dashboard"
         # Assuming supervisor is assigned to a site or manages workers based on some logic

@@ -752,10 +752,10 @@
                     <!-- Navigation Links -->
                     <ul class="nav flex-column mt-2">
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-                                href="{% url 'dashboard' %}" data-tooltip="Dashboard">
-                                <i class="bi bi-speedometer2"></i>
-                                <span>Dashboard</span>
+                            <a class="nav-link {% if 'projects' in request.path %}active{% endif %}"
+                                href="{% url 'projects:project_list' %}" data-tooltip="Projects">
+                                <i class="bi bi-building"></i>
+                                <span>Projects</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -775,13 +775,6 @@
                         </li>
                         {% endif %}
                         {% if user.role == 'ADMIN' %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if 'projects' in request.path %}active{% endif %}"
-                                href="{% url 'projects:project_list' %}" data-tooltip="Projects">
-                                <i class="bi bi-building"></i>
-                                <span>Projects</span>
-                            </a>
-                        </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'fuel' in request.path %}active{% endif %}"
                                 href="{% url 'fuel:fuel_list' %}" data-tooltip="Fuel Tracking">

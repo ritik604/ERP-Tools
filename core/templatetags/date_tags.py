@@ -1,6 +1,6 @@
 from django import template
 from django.utils import timezone
-import pytz
+from zoneinfo import ZoneInfo
 
 register = template.Library()
 
@@ -33,13 +33,14 @@ def format_datetime(value):
         return "-"
     try:
         # Ensure the datetime is timezone-aware and in IST
+        ist = ZoneInfo('Asia/Kolkata')
+        
         if timezone.is_aware(value):
-            ist = pytz.timezone('Asia/Kolkata')
+            # Convert to IST
             value = value.astimezone(ist)
         else:
-            # If naive, assume it's already in IST
-            ist = pytz.timezone('Asia/Kolkata')
-            value = ist.localize(value)
+            # If naive, make it aware in IST
+            value = value.replace(tzinfo=ist)
         
         # Format as '09 Feb 2026, 01:57:16 IST'
         return value.strftime('%d %b %Y, %H:%M:%S IST')

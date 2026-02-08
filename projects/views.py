@@ -2,11 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Sum, Avg, DecimalField, FloatField
+from django.db.models import Q, Sum, Avg, DecimalField, FloatField, Count
 from django.db.models.functions import Coalesce
 from .models import ProjectSite, Milestone, MilestoneImage
 from .forms import ProjectSiteForm, MilestoneForm
 from fuel.models import FuelRecord
+from users.models import CustomUser
 import csv
 from django.http import HttpResponse
 
@@ -20,7 +21,7 @@ def project_list(request):
     query = request.GET.get('q')
     status_filter = request.GET.get('status')
 
-    projects = ProjectSite.objects.all()
+    projects = ProjectSite.objects.annotate(worker_count=Count('assigned_workers'))
 
     if query:
         projects = projects.filter(Q(name__icontains=query) | Q(site_id__icontains=query))
@@ -46,7 +47,11 @@ def project_list(request):
         
         projects_list.append(project)
 
-    return render(request, 'projects/project_list.html', {'projects': projects_list})
+    context = {
+        'projects': projects_list,
+    }
+
+    return render(request, 'projects/project_list.html', context)
 
 @login_required
 def project_create(request):
