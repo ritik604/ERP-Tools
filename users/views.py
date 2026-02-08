@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.http import HttpResponse
+from django.core.paginator import Paginator
 from .models import CustomUser
 from projects.models import ProjectSite
 from attendance.models import Attendance
@@ -19,7 +20,7 @@ def dashboard_view(request):
     if user.role == 'ADMIN':
         context['title'] = "Admin Dashboard"
         context['total_projects'] = ProjectSite.objects.filter(status='ACTIVE').count()
-        context['total_employees'] = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).count()
+        context['total_employees'] = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).exclude(is_superuser=True).count()
         context['total_budget'] = ProjectSite.objects.aggregate(Sum('budget'))['budget__sum'] or 0
     elif user.role == 'SUPERVISOR':
         context['title'] = "Supervisor Dashboard"
@@ -68,7 +69,7 @@ def employee_list(request):
         return redirect('dashboard')
     
     if request.user.role == 'ADMIN':
-        employees = CustomUser.objects.exclude(is_superuser=True).select_related('assigned_site')
+        employees = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).exclude(is_superuser=True).select_related('assigned_site')
     else:
         # Supervisor sees only workers
         employees = CustomUser.objects.filter(role='WORKER').select_related('assigned_site')
@@ -94,15 +95,26 @@ def employee_list(request):
     
     # Get all sites for filter dropdown
     sites = ProjectSite.objects.all()
+
+    # Pagination
+    employees = employees.order_by('employee_id')
+    paginator = Paginator(employees, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'employees': employees,
+        'page_obj': page_obj,
+        'total_count': employees.count(),
         'sites': sites,
         'search_query': search_query,
         'role_filter': role_filter,
         'site_filter': site_filter,
         'is_admin': request.user.role == 'ADMIN',
     }
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'users/employee_table_partial.html', context)
+    
     return render(request, 'users/employee_list.html', context)
 
 
@@ -169,7 +181,7 @@ def export_employees_csv(request):
         return redirect('dashboard')
     
     if request.user.role == 'ADMIN':
-        employees = CustomUser.objects.exclude(is_superuser=True).select_related('assigned_site')
+        employees = CustomUser.objects.filter(role__in=['SUPERVISOR', 'WORKER']).exclude(is_superuser=True).select_related('assigned_site')
     else:
         employees = CustomUser.objects.filter(role='WORKER').select_related('assigned_site')
     

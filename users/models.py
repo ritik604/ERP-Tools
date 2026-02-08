@@ -1,6 +1,11 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
 from django.utils import timezone
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields['role'] = 'ADMIN'
+        return super().create_superuser(username, email, password, **extra_fields)
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
@@ -23,6 +28,8 @@ class CustomUser(AbstractUser):
             models.Index(fields=['role']),
             models.Index(fields=['assigned_site']),
         ]
+    
+    objects = CustomUserManager()
 
     def save(self, *args, **kwargs):
         if not self.employee_id:

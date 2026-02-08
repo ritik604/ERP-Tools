@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from django.utils import timezone
 from .models import CustomUser
 
 class CustomUserCreationForm(UserCreationForm):
@@ -24,6 +25,12 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['role'].help_text = "Select role: Admin, Supervisor, or Worker"
         self.fields['assigned_site'].help_text = "Assign a project site immediately (Optional)"
 
+    def clean_date_joined(self):
+        date = self.cleaned_data.get('date_joined')
+        if not date:
+            return timezone.localdate()
+        return date
+
 class CustomUserUpdateForm(forms.ModelForm):
     date_joined = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -32,3 +39,9 @@ class CustomUserUpdateForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = ('first_name', 'last_name', 'role', 'government_id', 'salary', 'mobile', 'assigned_site', 'date_joined')
+
+    def clean_date_joined(self):
+        date = self.cleaned_data.get('date_joined')
+        if not date:
+            return self.instance.date_joined or timezone.localdate()
+        return date
