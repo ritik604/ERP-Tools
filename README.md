@@ -12,6 +12,7 @@ A comprehensive Enterprise Resource Planning (ERP) system for construction compa
 - **Employee Management** - Track workers, supervisors, salaries, and roles
 - **Project Management** - Manage construction sites, milestones, budgets, and progress tracking
 - **Attendance Tracking** - Record and monitor employee attendance with filtering and export
+- **Attendance Automation** - Automated absenteeism script runs daily at 1:00 PM IST
 - **Fuel Tracking** - Monitor fuel consumption for vehicles and equipment
 - **Vehicle Management** - Manage company vehicles and assignments
 - **Role-Based Access Control** - Admin, Supervisor, and Worker roles with appropriate permissions
@@ -137,6 +138,14 @@ The admin panel includes a "Reset Password" feature that resets employee passwor
 | **Admin** | Full access - manage all modules, users, and settings |
 | **Supervisor** | View/manage workers, record attendance, view projects |
 | **Worker** | View own dashboard, attendance history |
+
+## 🤖 Attendance Automation
+
+The system includes a self-triggering automation for marking absentees:
+- **Trigger**: Runs automatically daily when any page is accessed after **1:00 PM IST**.
+- **Logic**: Marks all active workers/supervisors who haven't updated their status as `ABSENT`.
+- **Lockout**: Once auto-marked, workers cannot check in; only Admins or Supervisors can manually override.
+- **Logs**: Daily summaries are stored in `attendance_logs/` (kept for a rolling 7-day period).
 
 ## 📊 Screenshots
 

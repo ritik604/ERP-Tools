@@ -18,10 +18,20 @@ def mark_attendance(request):
         return render(request, 'attendance/error.html', {'message': "You are not assigned to any site."})
 
     today = get_ist_date()
-    already_checked_in = Attendance.objects.filter(worker=user, date=today).exists()
+    # Check if a record already exists (PRESENT, ABSENT, or LEAVE)
+    existing_attendance = Attendance.objects.filter(worker=user, date=today).exists()
+    
+    if existing_attendance:
+        # If any record exists, they are blocked from self-service check-in
+        return render(request, 'attendance/mark_attendance.html', {
+            'site': assigned_site, 
+            'already_checked_in': True,
+            'message': "Attendance record already exists for today. Please contact your supervisor for any manual updates."
+        })
 
     if request.method == 'POST':
-        if already_checked_in:
+        # If they are blocked (already checked in for today)
+        if existing_attendance and existing_attendance.status in ['PRESENT', 'LEAVE']:
             return redirect('attendance:attendance_list')
 
         lat = request.POST.get('latitude')
@@ -56,7 +66,7 @@ def mark_attendance(request):
         )
         return redirect('attendance:attendance_list')
 
-    return render(request, 'attendance/mark_attendance.html', {'site': assigned_site, 'already_checked_in': already_checked_in})
+    return render(request, 'attendance/mark_attendance.html', {'site': assigned_site, 'already_checked_in': False})
 
 from django.db.models import Q
 import xlwt
