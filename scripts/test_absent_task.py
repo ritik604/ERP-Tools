@@ -39,8 +39,8 @@ def run_test():
     # Clear audit logs for attendance to be sure
     # (Optional, but helps verification)
     
-    print(f"Running mark_absent command for date {today}...")
-    call_command('mark_absent', date=str(today))
+    print(f"Running mark_attendance command for date {today}...")
+    call_command('mark_attendance', date=str(today))
 
     # Verify Attendance Created
     attendance = Attendance.objects.filter(worker=worker, date=today, status='ABSENT').first()

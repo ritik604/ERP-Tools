@@ -267,3 +267,74 @@ def attendance_update(request, pk):
         return redirect('attendance:attendance_list')
     
     return render(request, 'attendance/attendance_form.html', {'record': record})
+@login_required
+def check_automation_status(request):
+    """
+    Endpoint to check if the attendance automation ran for a specific date.
+    Returns a plain text report.
+    Usage: /attendance/check-status/?date=2024-03-25
+    """
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
+        return HttpResponse("Unauthorized", status=403)
+
+    date_str = request.GET.get('date')
+    if date_str:
+        try:
+            from datetime import datetime
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return HttpResponse("Invalid date format. Use YYYY-MM-DD", status=400)
+    else:
+        target_date = get_ist_date()
+
+    from core.models import SystemTaskLog
+    import os
+    
+    # 1. Check Database
+    try:
+        db_record = SystemTaskLog.objects.filter(task_name='mark_absent', run_date=target_date).first()
+        run_time = db_record.completed_at.strftime('%H:%M:%S') if db_record else "N/A"
+    except Exception as e:
+         return HttpResponse(f"Error checking DB: {str(e)}", status=500)
+
+    # 2. Check Log File
+    LOG_DIR = "attendance_logs"
+    log_filename = f"attendance_summary_{target_date}.log"
+    log_path = os.path.join(LOG_DIR, log_filename)
+    file_exists = os.path.exists(log_path)
+    
+    # Generate Output
+    output = []
+    output.append(f"STATUS REPORT FOR {target_date}")
+    output.append("-" * 30)
+    
+    if db_record:
+        output.append(f"[OK] Database Record Found: Run at {run_time}")
+    else:
+        output.append("[MISSING] Database Record MISSING")
+        
+    if file_exists:
+        output.append(f"[OK] Log File Found: {log_path}")
+        try:
+            with open(log_path, 'r') as f:
+                content = f.readlines()
+                # Extract the 3 count lines (usually lines 5, 6, 7 in the log file)
+                # But safer to just dump the whole content or search key lines
+                relevant_lines = [line.strip() for line in content if ":" in line and ("Total" in line or "Marked" in line or "Absent" in line)]
+                for line in relevant_lines:
+                    output.append(f"    -> {line}")
+        except:
+             output.append("    -> (Could not read file content)")
+    else:
+        output.append(f"[MISSING] Log File MISSING: {log_filename}")
+        
+    output.append("-" * 30)
+    
+    if db_record and file_exists:
+         output.append("RESULT: Automation ran successfully today.")
+    elif db_record:
+         output.append("RESULT: DB says it ran, but log file is missing (maybe deleted?).")
+    else:
+         output.append("RESULT: Automation HAS NOT RUN today yet.")
+
+    return HttpResponse("\n".join(output), content_type="text/plain")
