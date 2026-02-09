@@ -6,8 +6,13 @@ import datetime
 import os
 import glob
 
-# Directory for logs
-LOG_DIR = "attendance_logs"
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Directory for logs - Using absolute path for production consistency
+LOG_DIR = os.path.join(settings.BASE_DIR, "attendance_logs")
 
 def cleanup_old_logs():
     """Removes log files older than 7 days."""
@@ -26,7 +31,8 @@ def cleanup_old_logs():
             
             if file_date < seven_days_ago:
                 os.remove(file_path)
-        except (ValueError, OSError):
+        except Exception as e:
+            logger.error(f"Error cleaning up old log {file_path}: {e}")
             continue
 
 def run_mark_attendance_logic(target_date=None):
@@ -35,75 +41,82 @@ def run_mark_attendance_logic(target_date=None):
     Designed to run safely in a background thread.
     """
     from django.db import close_old_connections, transaction
+    from core.utils import get_ist_now
     
-    # Close old connections to ensure thread safety
-    close_old_connections()
+    try:
+        # Close old connections to ensure thread safety
+        close_old_connections()
 
-    if not target_date:
-        target_date = get_ist_date()
+        if not target_date:
+            target_date = get_ist_date()
 
-    with transaction.atomic():
-        # 1. Filter target users
-        target_users = CustomUser.objects.filter(
-            is_active=True,
-            role__in=['BASIC', 'ELEVATED'],
-            assigned_site__isnull=False,
-            date_joined__lte=target_date
-        )
-    total_users = target_users.count()
-
-    # 3. Identify missing attendance
-    existing_ids = Attendance.objects.filter(
-        date=target_date,
-        worker__in=target_users
-    ).values_list('worker_id', flat=True)
-
-    users_to_mark = target_users.exclude(id__in=existing_ids)
-    count_to_mark = users_to_mark.count()
-
-    # 4. Create Absent records
-    if count_to_mark > 0:
-        attendance_objects = []
-        for user in users_to_mark:
-            attendance_objects.append(
-                Attendance(
-                    worker=user,
-                    site=user.assigned_site,
-                    date=target_date,
-                    status='ABSENT',
-                    verified=False
-                )
+        with transaction.atomic():
+            # 1. Filter target users
+            target_users = CustomUser.objects.filter(
+                is_active=True,
+                role__in=['BASIC', 'ELEVATED'],
+                assigned_site__isnull=False,
+                date_joined__lte=target_date
             )
-        Attendance.objects.bulk_create(attendance_objects)
+            total_users = target_users.count()
 
-    # 5. Generate Summary
-    final_attendance = Attendance.objects.filter(date=target_date, worker__in=target_users)
-    present_count = final_attendance.filter(status='PRESENT').count()
-    absent_count = final_attendance.filter(status='ABSENT').count()
-    
-    summary = (
-        f"ATTENDANCE SUMMARY FOR {target_date}\n"
-        f"{'='*40}\n"
-        f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        f"Total Eligible Basic/Elevated: {total_users}\n"
-        f"Already Marked Present: {present_count}\n"
-        f"Auto-Marked Absent:    {count_to_mark}\n"
-        f"Final Absent Count:    {absent_count}\n"
-        f"{'='*40}\n"
-    )
+            # 3. Identify missing attendance
+            existing_ids = Attendance.objects.filter(
+                date=target_date,
+                worker__in=target_users
+            ).values_list('worker_id', flat=True)
 
-    # 6. Write to daily log file
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
+            users_to_mark = target_users.exclude(id__in=existing_ids)
+            count_to_mark = users_to_mark.count()
+
+            # 4. Create Absent records
+            if count_to_mark > 0:
+                attendance_objects = []
+                for user in users_to_mark:
+                    attendance_objects.append(
+                        Attendance(
+                            worker=user,
+                            site=user.assigned_site,
+                            date=target_date,
+                            status='ABSENT',
+                            verified=False
+                        )
+                    )
+                Attendance.objects.bulk_create(attendance_objects)
+
+        # 5. Generate Summary
+        final_attendance = Attendance.objects.filter(date=target_date, worker__in=target_users)
+        present_count = final_attendance.filter(status='PRESENT').count()
+        absent_count = final_attendance.filter(status='ABSENT').count()
         
-    log_filename = os.path.join(LOG_DIR, f"attendance_summary_{target_date}.log")
-    with open(log_filename, 'w') as f:
-        f.write(summary)
+        summary = (
+            f"ATTENDANCE SUMMARY FOR {target_date}\n"
+            f"{'='*40}\n"
+            f"Timestamp: {get_ist_now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"Total Eligible Basic/Elevated: {total_users}\n"
+            f"Already Marked Present: {present_count}\n"
+            f"Auto-Marked Absent:    {count_to_mark}\n"
+            f"Final Absent Count:    {absent_count}\n"
+            f"{'='*40}\n"
+        )
 
-    # 7. Cleanup tasks
-    cleanup_old_logs()
+        # 6. Write to daily log file
+        if not os.path.exists(LOG_DIR):
+            os.makedirs(LOG_DIR, exist_ok=True)
+            
+        log_filename = os.path.join(LOG_DIR, f"attendance_summary_{target_date}.log")
+        with open(log_filename, 'w') as f:
+            f.write(summary)
 
-    return count_to_mark, summary
+        # 7. Cleanup tasks
+        cleanup_old_logs()
+
+        return count_to_mark, summary
+
+    except Exception as e:
+        error_msg = f"Fatal error in attendance automation for {target_date}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return 0, error_msg
 
 class Command(BaseCommand):
     help = 'Marks missing attendance as ABSENT and logs results to a daily text file.'
