@@ -1,49 +1,7 @@
 {% extends 'base.html' %}
 {% load currency_tags %}
 
-{% block title %}Delete Record {{ record.record_id }} - Construction ERP{% endblock %}
-
-{% block content %}
-<div class="container-fluid py-4">
-    <!-- Header Section -->
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'fuel:fuel_list' %}">Fuel Tracking</a></li>
-                    <li class="breadcrumb-item"><a
-                            href="{% url 'fuel:fuel_detail' record.pk %}">{{record.record_id}}</a></li>
-                    <li class="breadcrumb-item active">Delete</li>
-                </ol>
-            </nav>
-            <h2 class="fw-bold mb-0 text-danger">Confirm Deletion</h2>
-        </div>
-    </div>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-5 text-center">
-                    <div class="bg-danger bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
-                        <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
-                    </div>
-                    <h3 class="fw-bold mb-3">Are you sure?</h3>
-                    <p class="text-muted mb-4 px-lg-5">
-                        You are about to delete fuel record <strong class="text-dark">{{ record.record_id }}</strong>
-                        for <strong class="text-dark">{{ record.project.name }}</strong>.
-                        This action will remove all recorded data for this entry and cannot be undone.
-                    </p>
-
-                    <div class="bg-light p-3 rounded mb-4 text-start mx-lg-5 border-start border-4 border-danger">
-                        <div class="row">
-                            <div class="col-6">
-                                <small class="text-muted text-uppercase fw-bold d-block">Project</small>
-                                <span>{{ record.project.name }}</span>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted text-uppercase fw-bold d-block">Cost</small>
-                                <span class="fw-bold text-danger">{{ record.total_cost|to_inr }}</span>
+{% block title %}Delete Record {{ record.record_id }} - Construction ERP{% endblock %} {% block content %} <div class="container-fluid py-4"> <!-- Header Section --> <div class="row mb-4 align-items-center"> <div class="col"> <nav aria-label="breadcrumb"> <ol class="breadcrumb mb-1"> <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li> <li class="breadcrumb-item"><a href="{% url 'fuel:fuel_list' %}">Fuel Tracking</a></li> <li class="breadcrumb-item"><a href="{% url 'fuel:fuel_detail' record.pk %}">{{record.record_id}}</a></li> <li class="breadcrumb-item active">Delete</li> </ol> </nav> <h2 class="fw-bold mb-0 text-danger">Confirm Deletion</h2> </div> </div> <div class="row justify-content-center"> <div class="col-lg-8"> <div class="card border-0 shadow-sm"> <div class="card-body p-5 text-center"> <div class="bg-danger bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4"> <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i> </div> <h3 class="fw-bold mb-3">Are you sure?</h3> <p class="text-muted mb-4 px-lg-5"> You are about to delete fuel record <strong class="text-dark">{{ record.record_id }}</strong> for <strong class="text-dark">{{ record.project.name }}</strong>. This action will remove all recorded data for this entry and cannot be undone. </p> <div class="bg-light p-3 rounded mb-4 text-start mx-lg-5 border-start border-4 border-danger"> <div class="row"> <div class="col-6"> <small class="text-muted text-uppercase fw-bold d-block">Project</small> <span>{{ record.project.name }}</span> </div> <div class="col-6"> <small class="text-muted text-uppercase fw-bold d-block">Cost</small> <span class="fw-bold text-danger">{{ record.total_cost|to_inr }}</span>
                             </div>
                         </div>
                     </div>

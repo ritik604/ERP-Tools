@@ -25,37 +25,24 @@
             <form id="employeeFilterForm" onsubmit="applyFilters(); return false;">
                 <div class="row g-2 align-items-center">
                     <div class="col-12 col-md-3">
-                        <input type="text" id="filterSearch" class="form-control" placeholder="Search Name, ID..."
-                            value="{{ search_query }}">
-                    </div>
-
-                    {% if is_admin %}
-                    <div class="col-6 col-md-2">
-                        <select id="filterRole" class="form-select" aria-label="Select Role">
+                        <input type="text" id="filterSearch" class="form-control"
+                            placeholder="Search Name, ID, Designation..." value="{{ search_query }}">
+                    </div> {% if user.role == 'ADMIN' or user.role == 'ELEVATED' %} <div class="col-6 col-md-2"> <select
+                            id="filterRole" class="form-select" aria-label="Select Role">
                             <option value="">All Roles</option>
-                            <option value="ADMIN" {% if role_filter == 'ADMIN' %}selected{% endif %}>Admin</option>
-                            <option value="SUPERVISOR" {% if role_filter == 'SUPERVISOR' %}selected{% endif %}>Supervisor
-                            </option>
-                            <option value="WORKER" {% if role_filter == 'WORKER' %}selected{% endif %}>Worker</option>
-                        </select>
-                        </select>
-                    </div>
-                    {% endif %}
-
-                    <div class="col-6 col-md-2">
-                        <select id="filterStatus" class="form-select" aria-label="Select Status">
-                            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
-                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
-                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-{% if is_admin %}3{% else %}5{% endif %}">
+                            <option value="ADMIN">Admin</option>
+                            <option value="ELEVATED">Elevated</option>
+                            <option value="BASIC">Basic</option>
+                        </select> </div> {% endif %} <div class="col-6 col-md-2"> <select id="filterStatus"
+                            class="form-select" aria-label="Select Status">
+                            <option value="all">All Status</option>
+                            <option value="active" selected>Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select> </div>
+                    <div
+                        class="col-6 col-md-{% if user.role == 'ADMIN' or user.role == 'ELEVATED' %}3{% else %}5{% endif %}">
                         <select id="filterSite" class="form-select" aria-label="Select Site">
-                            <option value="">All Sites</option>
-                            {% for site in sites %}
-                            <option value="{{ site.id }}" {% if site_filter == site.id|stringformat:"i" %}selected{% endif %}>{{ site.name }}</option>
+                            <option value="">All Sites</option> {% for site in sites %} <option value="{{ site.id }}">{{site.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -149,7 +136,6 @@
             status: statusVal
         });
 
-        // Use the separate export URL
         window.location.href = `{% url 'export_employees_csv' %}?${params.toString()}`;
     }
 
@@ -159,7 +145,6 @@
 
     function resetFilters() {
         document.getElementById('employeeFilterForm').reset();
-        // Manually clear values and defaults
         document.getElementById('filterSearch').value = '';
         if (document.getElementById('filterRole')) document.getElementById('filterRole').value = '';
         document.getElementById('filterSite').value = '';

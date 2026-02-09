@@ -114,8 +114,27 @@ def create_audit_log(action, instance, changes=None):
     ip_address = get_current_ip()
     
     # Get module from app label
-    module = instance._meta.app_label
-    model_name = instance.__class__.__name__
+    app_label = instance._meta.app_label
+    model_name_cls = instance.__class__.__name__
+    
+    # Determine module name based on model/app
+    if app_label == 'projects':
+        if model_name_cls == 'Milestone':
+            module = 'Project - Milestone'
+        else:  # ProjectSite
+            module = 'Project - Info'
+    elif app_label == 'attendance':
+        module = 'Attendance'
+    elif app_label == 'fuel':
+        module = 'Fuel'
+    elif app_label == 'users':
+        module = 'Employees'
+    elif app_label == 'vehicles':
+        module = 'Vehicles'
+    else:
+        module = app_label.title()  # Fallback to Title Case of app label
+    
+    model_name = model_name_cls
     
     AuditLog.objects.create(
         module=module,
@@ -129,13 +148,12 @@ def create_audit_log(action, instance, changes=None):
     )
 
 
-# Models to track
+# Models to track (image models excluded - handled manually in views for unified audit)
 TRACKED_MODELS = {
     'users.customuser',
     'fuel.fuelrecord',
     'projects.projectsite',
     'projects.milestone',
-    'projects.milestoneimage',
     'attendance.attendance',
     'vehicles.vehicle',
 }

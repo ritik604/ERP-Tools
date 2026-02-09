@@ -11,18 +11,18 @@ class CustomUserCreationForm(UserCreationForm):
     )
     class Meta:
         model = CustomUser
-        fields = ('username', 'email', 'role', 'first_name', 'last_name', 'government_id', 'salary', 'mobile', 'assigned_site', 'date_joined')
+        fields = ('username', 'email', 'role', 'first_name', 'last_name', 'designation', 'government_id', 'salary', 'mobile', 'assigned_site', 'date_joined')
 
     def __init__(self, *args, **kwargs):
         request_user = kwargs.pop('request_user', None)
         super().__init__(*args, **kwargs)
         
         # If the person creating the user is a supervisor, only show "Worker" choice
-        if request_user and request_user.role == 'SUPERVISOR':
-            self.fields['role'].choices = [('WORKER', 'Worker')]
-            self.fields['role'].initial = 'WORKER'
+        if request_user and request_user.role == CustomUser.ROLE_ELEVATED:
+            self.fields['role'].choices = [(CustomUser.ROLE_BASIC, 'Basic')]
+            self.fields['role'].initial = CustomUser.ROLE_BASIC
         
-        self.fields['role'].help_text = "Select role: Admin, Supervisor, or Worker"
+        self.fields['role'].help_text = "Select role: Admin, Elevated, or Basic"
         self.fields['assigned_site'].help_text = "Assign a project site immediately (Optional)"
 
     def clean_date_joined(self):
@@ -38,7 +38,14 @@ class CustomUserUpdateForm(forms.ModelForm):
     )
     class Meta:
         model = CustomUser
-        fields = ('first_name', 'last_name', 'role', 'government_id', 'salary', 'mobile', 'assigned_site', 'date_joined')
+        fields = ('username', 'first_name', 'last_name', 'designation', 'role', 'government_id', 'salary', 'mobile', 'assigned_site', 'date_joined')
+
+    def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop('request_user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.request_user and self.request_user.role == CustomUser.ROLE_ELEVATED:
+            self.fields['role'].choices = [(CustomUser.ROLE_BASIC, 'Basic')]
 
     def clean_date_joined(self):
         date = self.cleaned_data.get('date_joined')

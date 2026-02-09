@@ -46,7 +46,7 @@ def run_mark_attendance_logic(target_date=None):
         # 1. Filter target users
         target_users = CustomUser.objects.filter(
             is_active=True,
-            role__in=['WORKER', 'SUPERVISOR'],
+            role__in=['BASIC', 'ELEVATED'],
             assigned_site__isnull=False,
             date_joined__lte=target_date
         )
@@ -85,7 +85,7 @@ def run_mark_attendance_logic(target_date=None):
         f"ATTENDANCE SUMMARY FOR {target_date}\n"
         f"{'='*40}\n"
         f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        f"Total Eligible Workers: {total_users}\n"
+        f"Total Eligible Basic/Elevated: {total_users}\n"
         f"Already Marked Present: {present_count}\n"
         f"Auto-Marked Absent:    {count_to_mark}\n"
         f"Final Absent Count:    {absent_count}\n"

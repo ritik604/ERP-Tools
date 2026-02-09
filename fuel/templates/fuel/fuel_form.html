@@ -34,57 +34,72 @@
                         </div>
                         <div>
                             <h5 class="fw-bold mb-0">{{ title }} Information</h5>
-                            <p class="text-muted small mb-0">{% if record %}Modifying record {{ record.record_id }}{% else %}Creating a new fuel entry{% endif %}</p>
+                            <p class="text-muted small mb-0">
+                                {% if record %}Modifying record {{ record.record_id }}{% else %}Creating a new fuel
+                                entry{% endif %}
+                            </p>
                         </div>
                     </div>
                 </div>
                 <div class="card-body p-4">
                     <form method="POST" enctype="multipart/form-data" class="needs-validation">
                         {% csrf_token %}
+                        <input type="hidden" name="delete_images" id="delete-images-input" value="">
+
                         <div class="row">
-                            <div class="col-12 col-md-6 mb-3">
-                                {{ form.project|as_crispy_field }}
-                            </div>
-                            <div class="col-12 col-md-6 mb-3">
-                                {{ form.date|as_crispy_field }}
-                            </div>
+                            <div class="col-12 col-md-6 mb-3">{{ form.project|as_crispy_field }}</div>
+                            <div class="col-12 col-md-6 mb-3">{{ form.date|as_crispy_field }}</div>
                         </div>
                         <div class="row">
-                            <div class="col-6 col-md-4 mb-3">
-                                {{ form.fuel_type|as_crispy_field }}
-                            </div>
-                            <div class="col-6 col-md-4 mb-3">
-                                {{ form.quantity_liters|as_crispy_field }}
-                            </div>
-                            <div class="col-6 col-md-4 mb-3">
-                                {{ form.total_cost|as_crispy_field }}
-                            </div>
+                            <div class="col-6 col-md-4 mb-3">{{ form.fuel_type|as_crispy_field }}</div>
+                            <div class="col-6 col-md-4 mb-3">{{ form.quantity_liters|as_crispy_field }}</div>
+                            <div class="col-6 col-md-4 mb-3">{{ form.total_cost|as_crispy_field }}</div>
                         </div>
                         <div class="row">
-                            <div class="col-12 col-md-6 mb-3">
-                                {{ form.price_per_liter|as_crispy_field }}
-                            </div>
-                            <div class="col-12 col-md-6 mb-3">
-                                {{ form.vehicle|as_crispy_field }}
-                            </div>
+                            <div class="col-12 col-md-6 mb-3">{{ form.price_per_liter|as_crispy_field }}</div>
+                            <div class="col-12 col-md-6 mb-3">{{ form.vehicle|as_crispy_field }}</div>
                         </div>
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.receipt.id_for_label }}" class="form-label">Receipt</label>
-                                {{ form.receipt }}
-                                {{ form.receipt.errors }}
-                                {% if record and record.receipt and record.receipt.name %}
-                                <div class="mt-2">
-                                    <p class="small text-muted mb-1">Current Receipt:</p>
-                                    <img src="{{ record.receipt.url }}" alt="Receipt" class="img-thumbnail"
-                                        style="max-height: 200px;">
+
+                        {% if record and record.images.exists %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Existing Receipt Images</label>
+                            <div class="row g-2 mb-2" id="existing-images">
+                                {% for img in record.images.all %}
+                                <div class="col-6 col-sm-4 col-md-2 image-container" data-image-id="{{ img.id }}"
+                                    id="image-{{ img.id }}">
+                                    <div class="position-relative">
+                                        <img src="{{ img.image.url }}" alt="Receipt Image"
+                                            class="img-thumbnail image-preview"
+                                            style="height: 100px; width: 100%; object-fit: cover; border-radius: 8px;">
+                                        <button type="button"
+                                            class="btn btn-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center position-absolute delete-btn"
+                                            style="width: 24px; height: 24px; top: 4px; right: 4px; z-index: 10;"
+                                            title="Mark for deletion" onclick="toggleImageDelete({{ img.id }})">
+                                            <i class="bi bi-x-lg" style="font-size: 10px;"></i>
+                                        </button>
+                                        <div class="deleted-overlay position-absolute d-none"
+                                            style="top: 0; left: 0; right: 0; bottom: 0; background: rgba(220,53,69,0.6); display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                            <span class="text-white fw-bold small text-center px-1">MARKED FOR
+                                                DELETION</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                {% endif %}
+                                {% endfor %}
                             </div>
+                            <div class="form-text small">Click <i class="bi bi-x-lg text-danger"></i> to mark images for
+                                deletion.</div>
                         </div>
+                        <hr class="my-4">
+                        {% endif %}
+
                         <div class="mb-3">
-                            {{ form.notes|as_crispy_field }}
+                            <label class="form-label fw-bold">{% if record %}Add New Receipt Images{% else %}Receipt
+                                Images{% endif %}</label>
+                            {{ form.images }}
+                            <div class="form-text small">Upload one or more receipt images</div>
                         </div>
+
+                        <div class="mb-3">{{ form.notes|as_crispy_field }}</div>
 
                         <hr class="my-4">
                         <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
@@ -100,6 +115,30 @@
         </div>
     </div>
 </div>
+
+<style>
+    .breadcrumb-item+.breadcrumb-item::before {
+        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E");
+    }
+
+    .image-container.marked-for-delete .image-preview {
+        opacity: 0.3;
+    }
+
+    .image-container.marked-for-delete .deleted-overlay {
+        display: flex !important;
+    }
+
+    .image-container.marked-for-delete .delete-btn {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+
+    .image-container.marked-for-delete .delete-btn i::before {
+        content: "\F5DE";
+        /* bi-arrow-counterclockwise */
+    }
+</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -122,11 +161,26 @@
         qtyInput.addEventListener('input', calculateRate);
         totalInput.addEventListener('input', calculateRate);
     });
-</script>
 
-<style>
-    .breadcrumb-item+.breadcrumb-item::before {
-        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E");
+    // Track images marked for deletion
+    let imagesToDelete = [];
+
+    function toggleImageDelete(imageId) {
+        const container = document.getElementById('image-' + imageId);
+        const index = imagesToDelete.indexOf(imageId);
+
+        if (index === -1) {
+            // Mark for deletion
+            imagesToDelete.push(imageId);
+            container.classList.add('marked-for-delete');
+        } else {
+            // Unmark
+            imagesToDelete.splice(index, 1);
+            container.classList.remove('marked-for-delete');
+        }
+
+        // Update hidden input
+        document.getElementById('delete-images-input').value = imagesToDelete.join(',');
     }
-</style>
+</script>
 {% endblock %}

@@ -47,7 +47,7 @@ class FuelRecord(models.Model):
         help_text="Total amount paid",
         default=0
     )
-    receipt = models.ImageField(upload_to='fuel_receipts/', blank=True, null=True)
+    receipt = models.ImageField(upload_to='fuel_receipts/', blank=True, null=True)  # Legacy field
     vehicle = models.ForeignKey(
         'vehicles.Vehicle', 
         on_delete=models.SET_NULL, 
@@ -97,3 +97,13 @@ class FuelRecord(models.Model):
     
     def __str__(self):
         return f"{self.record_id} - {self.project.name}"
+
+
+class FuelRecordImage(models.Model):
+    """Model to store multiple images for a fuel record."""
+    fuel_record = models.ForeignKey(FuelRecord, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='fuel_receipts/')
+    uploaded_at = models.DateTimeField(default=get_ist_now, editable=False)
+
+    def __str__(self):
+        return f"Image for {self.fuel_record.record_id}"

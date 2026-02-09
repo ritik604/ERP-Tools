@@ -9,7 +9,7 @@ from django.contrib import messages
 @login_required
 def mark_attendance(request):
     user = request.user
-    if user.role not in ['WORKER', 'SUPERVISOR']:
+    if user.role not in ['BASIC', 'ELEVATED']:
         # Admin logic? For now redirect to dashboard
         return redirect('dashboard')
     
@@ -26,31 +26,42 @@ def mark_attendance(request):
         return render(request, 'attendance/mark_attendance.html', {
             'site': assigned_site, 
             'already_checked_in': True,
-            'message': "Attendance record already exists for today. Please contact your supervisor for any manual updates."
+            'message': "Attendance record already exists for today. Please contact an elevated user for any manual updates."
         })
 
+    from django.http import JsonResponse
+    
     if request.method == 'POST':
         # If they are blocked (already checked in for today)
-        if existing_attendance and existing_attendance.status in ['PRESENT', 'LEAVE']:
+        if existing_attendance:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': "Attendance already marked for today."})
             return redirect('attendance:attendance_list')
 
+        # For AJAX, data might be in request.POST or JSON body, but standard POST works for simple forms
         lat = request.POST.get('latitude')
         lon = request.POST.get('longitude')
         
         if not lat or not lon:
-             return render(request, 'attendance/mark_attendance.html', {'error': "Location access required to mark attendance.", 'site': assigned_site})
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': "Location access required."})
+            return render(request, 'attendance/mark_attendance.html', {'error': "Location access required to mark attendance.", 'site': assigned_site})
 
         worker_loc = (float(lat), float(lon))
         site_loc = (assigned_site.latitude, assigned_site.longitude)
-        distance = geodesic(worker_loc, site_loc).km
+        distance_km = geodesic(worker_loc, site_loc).km
+        distance_meters = distance_km * 1000
         
-        # Block check-in if more than 1km away from site
-        if distance > 1.0:
-            error_msg = f"You are {distance:.2f} km away from the site. Attendance can only be marked within 1 km of your assigned site."
+        # Check against dynamic site radius
+        max_radius = assigned_site.site_radius
+        if distance_meters > max_radius:
+            error_msg = f"You are {distance_meters:.0f} meters away from the site. Attendance can only be marked within {max_radius} meters."
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': error_msg})
             return render(request, 'attendance/mark_attendance.html', {
                 'error': error_msg,
                 'site': assigned_site,
-                'distance': round(distance, 2),
+                'distance': round(distance_km, 2),
                 'too_far': True
             })
         
@@ -62,8 +73,10 @@ def mark_attendance(request):
             status='PRESENT',
             latitude=lat,
             longitude=lon,
-            verified=True  # Always verified since we only allow check-in within 1km
+            verified=True
         )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': "Attendance marked successfully!"})
         return redirect('attendance:attendance_list')
 
     return render(request, 'attendance/mark_attendance.html', {'site': assigned_site, 'already_checked_in': False})
@@ -82,12 +95,12 @@ def attendance_list(request):
     queryset = Attendance.objects.select_related('worker', 'site').all()
 
     # Base Role Filtering
-    if user.role == 'SUPERVISOR':
+    if user.role == 'ELEVATED':
         if user.assigned_site:
             queryset = queryset.filter(Q(worker=user) | Q(site=user.assigned_site))
         else:
             queryset = queryset.filter(worker=user)
-    elif user.role == 'WORKER':
+    elif user.role == 'BASIC':
         queryset = queryset.filter(worker=user)
     
     # Apply UI Filters
@@ -142,6 +155,7 @@ def attendance_list(request):
         'page_obj': page_obj,
         'attendance_percentage': round(attendance_percentage, 1),
         'unique_employees': unique_employees,
+        'attendance_marked': Attendance.objects.filter(worker=user, date=get_ist_date()).exists(),
         'total_count': total_count,
         'sites': ProjectSite.objects.all() if user.role == 'ADMIN' else [user.assigned_site] if user.assigned_site else [],
         'status_choices': Attendance.STATUS_CHOICES,
@@ -167,12 +181,12 @@ def export_attendance_csv(request):
     queryset = Attendance.objects.select_related('worker', 'site').all()
 
     # Base Role Filtering
-    if user.role == 'SUPERVISOR':
+    if user.role == 'ELEVATED':
         if user.assigned_site:
             queryset = queryset.filter(Q(worker=user) | Q(site=user.assigned_site))
         else:
             queryset = queryset.filter(worker=user)
-    elif user.role == 'WORKER':
+    elif user.role == 'BASIC':
         queryset = queryset.filter(worker=user)
     
     # Apply UI Filters
@@ -212,12 +226,13 @@ def export_attendance_csv(request):
     response['Content-Disposition'] = 'attachment; filename="attendance_report.csv"'
     
     writer = csv.writer(response)
-    writer.writerow(['Date', 'Name', 'Site', 'Check In', 'Verified', 'Status'])
+    writer.writerow(['Date', 'Name', 'Designation', 'Site', 'Check In', 'Verified', 'Status'])
     
     for record in queryset:
         writer.writerow([
             record.date.strftime("%B %d, %Y") if record.date else "-",
             record.worker.get_full_name() or record.worker.username,
+            record.worker.designation or "-",
             record.site.name if record.site else "-",
             record.check_in_time.strftime("%I:%M %p") if record.check_in_time else "-",
             "Yes" if record.verified else "No",
@@ -228,14 +243,14 @@ def export_attendance_csv(request):
 
 @login_required
 def attendance_update(request, pk):
-    if request.user.role not in ['ADMIN', 'SUPERVISOR']:
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     record = get_object_or_404(Attendance, pk=pk)
     
     # Supervisor can only edit records from their site
-    if request.user.role == 'SUPERVISOR':
+    if request.user.role == 'ELEVATED':
         if record.site != request.user.assigned_site:
             messages.error(request, "You can only edit attendance for your assigned site.")
             return redirect('attendance:attendance_list')

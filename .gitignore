@@ -103,6 +103,7 @@ generate_*.py
 debug_*.py
 locust*.py
 test_*.py
+comprehensive_template_fix*.py
 
 # ========================================
 # Agent & AI Tool Directories

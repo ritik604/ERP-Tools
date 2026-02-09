@@ -14,9 +14,9 @@ from django.http import HttpResponse
 
 @login_required
 def project_list(request):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     
     query = request.GET.get('q')
@@ -60,9 +60,9 @@ def project_list(request):
 
 @login_required
 def project_create(request):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     if request.method == 'POST':
         form = ProjectSiteForm(request.POST)
@@ -77,9 +77,9 @@ def project_create(request):
 
 @login_required
 def project_detail(request, pk):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
 
     project = get_object_or_404(ProjectSite, pk=pk)
     
@@ -137,9 +137,9 @@ def project_detail(request, pk):
 
 @login_required
 def project_update(request, pk):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     project = get_object_or_404(ProjectSite, pk=pk)
     
@@ -160,9 +160,9 @@ def project_update(request, pk):
 
 @login_required
 def milestone_update(request, pk, milestone_id):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     project = get_object_or_404(ProjectSite, pk=pk)
     milestone = get_object_or_404(Milestone, pk=milestone_id, project=project)
@@ -170,24 +170,79 @@ def milestone_update(request, pk, milestone_id):
     if request.method == 'POST':
         form = MilestoneForm(request.POST, request.FILES, instance=milestone)
         if form.is_valid():
+            # Capture existing images before any changes
+            existing_images = list(milestone.images.all())
+            existing_image_names = [img.image.name.split('/')[-1] for img in existing_images]
+            
             milestone = form.save()
             
-            # Handle image deletions
+            # Track deleted images
+            deleted_image_names = []
             delete_images = request.POST.get('delete_images', '')
             if delete_images:
                 image_ids = [int(id) for id in delete_images.split(',') if id.strip()]
                 for image_id in image_ids:
                     try:
                         image = MilestoneImage.objects.get(pk=image_id, milestone=milestone)
+                        deleted_image_names.append(image.image.name.split('/')[-1])
                         image.image.delete()  # Delete the file
                         image.delete()  # Delete the record
                     except MilestoneImage.DoesNotExist:
                         pass
             
-            # Handle multiple new images
+            # Track new images
+            new_image_names = []
             files = request.FILES.getlist('images')
             for f in files:
-                MilestoneImage.objects.create(milestone=milestone, image=f)
+                new_img = MilestoneImage.objects.create(milestone=milestone, image=f)
+                new_image_names.append(new_img.image.name.split('/')[-1])
+
+            # Update existing audit log entry with image changes if any occurred
+            if deleted_image_names or new_image_names:
+                from audit.models import AuditLog
+                from django.utils import timezone
+                from datetime import timedelta
+                
+                # Calculate remaining images
+                remaining_image_names = [name for name in existing_image_names if name not in deleted_image_names]
+                remaining_image_names.extend(new_image_names)
+                
+                # Build single 'images' change entry with pipe-delimited names  
+                image_changes = {
+                    'images': {
+                        'old': ' | '.join(existing_image_names) if existing_image_names else 'None',
+                        'new': ' | '.join(remaining_image_names) if remaining_image_names else 'None'
+                    }
+                }
+                
+                # Find and update the most recent audit entry for this record (created within last 5 seconds)
+                recent_time = timezone.now() - timedelta(seconds=5)
+                existing_audit = AuditLog.objects.filter(
+                    module='projects',
+                    model_name='Milestone',
+                    record_id=str(milestone.pk),
+                    action='UPDATE',
+                    timestamp__gte=recent_time
+                ).order_by('-timestamp').first()
+                
+                if existing_audit:
+                    # Merge image changes into existing audit entry and update module
+                    existing_audit.module = 'Project-Milestone'
+                    existing_audit.changes.update(image_changes)
+                    existing_audit.save()
+                else:
+                    # No recent audit entry found, create one
+                    from audit.middleware import get_current_ip
+                    AuditLog.objects.create(
+                        module='Project-Milestone',
+                        model_name='Milestone',
+                        record_id=str(milestone.pk),
+                        record_repr=f"{milestone.name} ({project.name})"[:255],
+                        action='UPDATE',
+                        user=request.user,
+                        changes=image_changes,
+                        ip_address=get_current_ip()
+                    )
 
             messages.success(request, f"Milestone '{milestone.name}' updated successfully!")
             return redirect('projects:project_detail', pk=pk)
@@ -217,9 +272,9 @@ def milestone_image_delete(request, pk, milestone_id, image_id):
 
 @login_required
 def project_delete(request, pk):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
         
     project = get_object_or_404(ProjectSite, pk=pk)
     
@@ -233,9 +288,9 @@ def project_delete(request, pk):
 @login_required
 def export_projects_csv(request):
     """View for exporting project site data to CSV."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
         
     query = request.GET.get('q')
     status_filter = request.GET.get('status')

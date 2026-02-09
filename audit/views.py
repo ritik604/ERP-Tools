@@ -15,9 +15,9 @@ from users.models import CustomUser
 def audit_list(request):
     """List all audit logs with filtering options."""
     # Only admins can view audit trail
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     # Get filter parameters
     query = request.GET.get('q', '')
@@ -65,7 +65,7 @@ def audit_list(request):
     logs = logs.order_by('-timestamp')
     
     # Get distinct values for filters
-    modules = AuditLog.objects.values_list('module', flat=True).distinct()
+    modules = ["Attendance", "Project - Info", "Project - Milestone", "Fuel", "Employees", "Vehicles"]
     users = CustomUser.objects.filter(
         id__in=AuditLog.objects.values_list('user_id', flat=True).distinct()
     ).order_by('username')
@@ -77,7 +77,7 @@ def audit_list(request):
     
     context = {
         'page_obj': page_obj,
-        'modules': sorted(modules),
+        'modules': modules,
         'users': users,
         'actions': AuditLog.ACTION_CHOICES,
         'filter_q': query,
@@ -99,9 +99,9 @@ def audit_list(request):
 def audit_detail(request, pk):
     """View detailed audit log entry."""
     # Only admins can view audit trail
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     log = get_object_or_404(AuditLog, pk=pk)
     
@@ -111,7 +111,7 @@ def audit_detail(request, pk):
 @login_required
 def export_audit_csv(request):
     """Export filtered audit logs to CSV."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         return HttpResponse("Access Denied", status=403)
     
     import csv

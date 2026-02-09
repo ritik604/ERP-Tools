@@ -34,57 +34,10 @@
                         <select id="vehType" class="form-select">
                             <option value="">All Types</option>
                             {% for code, name in vehicle_types %}
-                            <option value="{{ code }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-3">
-                        <select id="vehSite" class="form-select">
-                            <option value="">All Sites</option>
-                            {% for site in sites %}
-                            <option value="{{ site.id }}">{{ site.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-12 col-md-1">
-                        <button type="button" onclick="resetVehicleFilters()" class="btn btn-outline-secondary w-100"
-                            title="Reset">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="table-container">
-    <table class="modern-table">
-        <thead>
-            <tr>
-                <th scope="col">Vehicle ID</th>
-                <th scope="col">Name</th>
-                <th scope="col">Plate Number</th>
-                <th scope="col">Type</th>
-                <th scope="col">Assigned Site</th>
-                <th scope="col">Last Maintenance</th>
-                <th scope="col">Status</th>
-                <th scope="col">Actions</th>
-            </tr>
-        </thead>
-        <tbody id="vehicleTableBody">
-            {% for veh in vehicles %}
-            <tr class="vehicle-row" data-name="{{ veh.name|lower }}" data-id="{{ veh.vehicle_id|lower }}"
-                data-plate="{{ veh.plate_number|lower }}" data-type="{{ veh.vehicle_type }}"
-                data-site="{{ veh.assigned_site.id|default:'' }}">
-                <td class="fw-medium text-dark">{{ veh.vehicle_id }}</td>
-                <td>{{ veh.name }}</td>
-                <td>{{ veh.plate_number }}</td>
-                <td>{{ veh.get_vehicle_type_display }}</td>
-                <td>{{ veh.assigned_site.name|default:"Unassigned" }}</td>
-                <td>{{ veh.last_maintenance_date|format_date|default:"-" }}</td>
+                            <option value="{{ code }}">{{ name }}</option> {% endfor %} </select> </div> <div class="col-6 col-md-3"> <select id="vehSite" class="form-select"> <option value="">All Sites</option> {% for site in sites %} <option value="{{ site.id }}">{{ site.name }}</option> {% endfor %} </select> </div> <div class="col-12 col-md-1"> <button type="button" onclick="resetVehicleFilters()" class="btn btn-outline-secondary w-100" title="Reset"> <i class="bi bi-x-lg"></i> </button> </div> </div> </form> </div> </div> </div> <div class="table-container"> <table class="modern-table"> <thead> <tr> <th scope="col">Vehicle ID</th> <th scope="col">Name</th> <th scope="col">Plate Number</th> <th scope="col">Type</th> <th scope="col">Assigned Site</th> <th scope="col">Last Maintenance</th> <th scope="col">Status</th> <th scope="col">Actions</th> </tr> </thead> <tbody id="vehicleTableBody"> {% for veh in vehicles %} <tr class="vehicle-row" data-name="{{ veh.name|lower }}" data-id="{{ veh.vehicle_id|lower }}" data-plate="{{ veh.plate_number|lower }}" data-type="{{ veh.vehicle_type }}" data-site="{{ veh.assigned_site.id|default:'' }}">
+                <td class="fw-medium text-dark">{{ veh.vehicle_id }}</td> <td>{{ veh.name }}</td>
+                <td>{{ veh.plate_number }}</td> <td>{{ veh.get_vehicle_type_display }}</td>
+                <td>{{ veh.assigned_site.name|default:"Unassigned" }}</td> <td>{{ veh.last_maintenance_date|format_date|default:"-" }}</td>
                 <td>{{ veh.get_status_display }}</td>
                 <td>
                     <div class="d-flex gap-2">

@@ -6,10 +6,12 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Fuel Tracking</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
+        {% if is_admin %}
         <a href="{% url 'fuel:fuel_create' %}" class="btn btn-sm btn-outline-primary">
             <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">Add Fuel Record</span><span
                 class="d-sm-none">Add</span>
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -28,17 +30,11 @@
                         <input type="text" id="filterQ" class="form-control"
                             placeholder="Search ID, Vehicle or Project..." value="{{ filter_q }}">
                     </div>
-                    <div class="col-6 col-md-2">
-                        <select id="filterProject" class="form-select">
-                            <option value="">All Projects</option>
-                            {% for p in projects %}
-                            <option value="{{ p.id }}" {% if filter_project == p.id|stringformat:"i" %}selected{% endif %}>{{ p.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <input type="date" id="filterDateFrom" class="form-control" placeholder="From"
-                            value="{{ filter_date_from }}">
+                    <div class="col-6 col-md-2"> <select id="filterProject" class="form-select">
+                            <option value="">All Projects</option> {% for p in projects %} <option value="{{ p.id }}" {% if filter_project == p.id|stringformat:"i" %}selected{% endif %}>{{ p.name }}</option> {% endfor %}
+                        </select> </div>
+                    <div class="col-6 col-md-2"> <input type="date" id="filterDateFrom" class="form-control"
+                            placeholder="From" value="{{ filter_date_from }}">
                     </div>
                     <div class="col-6 col-md-2">
                         <input type="date" id="filterDateTo" class="form-control" placeholder="To"
@@ -46,8 +42,9 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="d-flex gap-2">
-                            <button type="button" onclick="applyFuelFilters()" class="btn btn-primary flex-grow-1">
-                                <i class="bi bi-search"></i> <span class="d-none d-md-inline">Apply</span>
+                            <button type="button" onclick="applyFuelFilters()" class="btn btn-primary flex-grow-1"
+                                title="Apply Filter">
+                                <i class="bi bi-search"></i>
                             </button>
                             <a href="{% url 'fuel:fuel_list' %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-lg"></i>
@@ -99,9 +96,6 @@
                 container.innerHTML = html;
                 container.style.opacity = '1';
                 container.style.pointerEvents = 'auto';
-
-                // Sync export form
-                document.getElementById('exportQ').value = qVal;
             })
             .catch(error => {
                 console.error('Error fetching fuel data:', error);

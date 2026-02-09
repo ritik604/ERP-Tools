@@ -12,7 +12,7 @@ class Attendance(models.Model):
     worker = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='attendance_records')
     site = models.ForeignKey(ProjectSite, on_delete=models.CASCADE, related_name='site_attendance')
     date = models.DateField(default=get_ist_date)
-    check_in_time = models.DateTimeField(null=True, blank=True)
+    check_in_time = models.DateTimeField(default=get_ist_now, null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='ABSENT', db_index=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)

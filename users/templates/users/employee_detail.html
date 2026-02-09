@@ -2,162 +2,9 @@
 {% load currency_tags %}
 {% load date_tags %}
 
-{% block title %}View/Update Employee - {{ employee.get_full_name|default:employee.username }}{% endblock %}
-
-{% block content %}
-<div class="container-fluid py-4">
-    <!-- Breadcrumb & Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'employee_list' %}">Employees</a></li>
-                    <li class="breadcrumb-item active">{{ employee.get_full_name|default:employee.username }}</li>
-                </ol>
-            </nav>
-            <h2 class="fw-bold mb-0">Employee Profile</h2>
-        </div>
-        <div class="col-auto d-flex gap-2">
-            <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back
-            </a>
-
-        </div>
-    </div>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <!-- Main Profile Card -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <!-- Profile Header -->
-                    <div class="d-flex align-items-start mb-4 pb-4 border-bottom">
-                        <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-4 d-flex align-items-center justify-content-center"
-                            style="width: 80px; height: 80px;">
-                            <i class="bi bi-person-fill text-primary" style="font-size: 2.5rem;"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h3 class="fw-bold mb-1">{{ employee.get_full_name|default:employee.username }}</h3>
-                                    <div class="mb-2">
-                                        <span
-                                            class="badge {% if employee.role == 'ADMIN' %}bg-danger{% elif employee.role == 'SUPERVISOR' %}bg-info{% else %}bg-secondary{% endif %} me-2">
-                                            {{ employee.get_role_display }}
-                                        </span>
-                                        <span class="text-muted fw-medium me-2">{{ employee.employee_id }}</span>
-                                        {% if employee.is_active %}
-                                        <span
-                                            class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Active
-                                        </span>
-                                        {% else %}
-                                        <span
-                                            class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
-                                            <i class="bi bi-x-circle-fill me-1"></i> Inactive
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% if is_admin %}
-                                <div>
-                                    {% if employee.is_active %}
-                                    <a href="{% url 'employee_update' pk=employee.pk %}"
-                                        class="btn btn-sm btn-primary me-1" title="Update Details">
-                                        <i class="bi bi-pencil-square"></i> Update
-                                    </a>
-                                    <a href="{% url 'reset_password' pk=employee.pk %}"
-                                        class="btn btn-sm btn-outline-warning me-1" title="Reset Password"
-                                        onclick="return confirm('Are you sure you want to reset the password for {{ employee.username }} to worker123?')">
-                                        <i class="bi bi-key"></i> Reset Password
-                                    </a>
-                                    <a href="{% url 'toggle_employee_status' pk=employee.pk %}"
-                                        class="btn btn-sm btn-outline-danger" title="Deactivate Profile">
-                                        <i class="bi bi-power"></i> Deactivate
-                                    </a>
-                                    {% else %}
-                                    <a href="{% url 'reset_password' pk=employee.pk %}"
-                                        class="btn btn-sm btn-outline-warning me-1" title="Reset Password"
-                                        onclick="return confirm('Are you sure you want to reset the password for {{ employee.username }} to worker123?')">
-                                        <i class="bi bi-key"></i> Reset Password
-                                    </a>
-                                    <a href="{% url 'toggle_employee_status' pk=employee.pk %}"
-                                        class="btn btn-sm btn-success" title="Activate Profile">
-                                        <i class="bi bi-power"></i> Activate
-                                    </a>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                            </div>
+{% block title %}Employee Profile - {{ employee.get_full_name|default:employee.username }}{% endblock %} {% block content %} <div class="container-fluid py-4"> <!-- Breadcrumb & Header --> <div class="d-flex justify-content-between align-items-center mb-4"> <div> <nav aria-label="breadcrumb"> <ol class="breadcrumb mb-1"> <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Home</a></li> <li class="breadcrumb-item"><a href="{% url 'employee_list' %}">Employees</a></li> <li class="breadcrumb-item active">{{ employee.get_full_name|default:employee.username }}</li> </ol> </nav> <h2 class="fw-bold mb-0">Employee Profile</h2> </div> <div class="d-flex gap-2"> {% if is_admin %} <a href="{% url 'employee_update' pk=employee.pk %}" class="btn btn-primary shadow-sm"> <i class="bi bi-pencil-square me-2"></i> Edit Profile </a> {% endif %} <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary"> <i class="bi bi-arrow-left me-2"></i> All Employees </a> </div> </div> <div class="row g-4"> <div class="col-lg-4"> <!-- Profile Overview Card --> <div class="card border-0 shadow-sm text-center p-4"> <div class="bg-primary bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;"> <i class="bi bi-person-circle text-primary" style="font-size: 3.5rem;"></i> </div> <h3 class="fw-bold mb-1">{{ employee.get_full_name|default:employee.username }}</h3> <p class="text-muted mb-3">{{ employee.designation|default:employee.get_role_display }}</p> <div class="d-flex justify-content-center gap-2 mb-4"> {% if employee.is_active %} <span class="badge bg-success rounded-pill px-3 py-2"> <i class="bi bi-check-circle me-1"></i> Active </span> {% else %} <span class="badge bg-danger rounded-pill px-3 py-2"> <i class="bi bi-x-circle me-1"></i> Inactive </span> {% endif %} <span class="badge bg-light text-dark rounded-pill px-3 py-2 border">ID: {{ employee.employee_id }}</span> </div> <div class="border-top pt-4"> <div class="row g-0"> <div class="col-6 border-end"> <label class="small text-muted text-uppercase fw-bold d-block">Joining Date</label> <div class="fw-bold">{{ employee.date_joined|format_date }}</div> </div> <div class="col-6"> <label class="small text-muted text-uppercase fw-bold d-block">Last Login</label> <div class="fw-bold">{{ employee.last_login|format_datetime|default:"Never" }}</div> </div> </div> </div> </div> {% if is_admin %} <div class="mt-4"> <label class="small text-muted text-uppercase fw-bold mb-2">Management Actions</label> <div class="d-grid gap-2"> <a href="{% url 'reset_password' pk=employee.pk %}" class="btn btn-outline-warning" onclick="return confirm('Reset password to worker123?')"> <i class="bi bi-key me-2"></i> Reset Access </a> <a href="{% url 'toggle_employee_status' pk=employee.pk %}" class="btn {% if employee.is_active %}btn-outline-danger{% else %}btn-success{% endif %}"> <i class="bi bi-power me-2"></i> {% if employee.is_active %}Deactivate Profile{% else %}Activate Profile{% endif %} </a> </div> </div> {% endif %} </div> <div class="col-lg-8"> <!-- Personal Details --> <div class="card border-0 shadow-sm mb-4"> <div class="card-header bg-white py-3"> <h5 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i> Detailed Information </h5> </div> <div class="card-body"> <div class="row g-4"> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Work Email</label> <div class="fw-bold">{{ employee.email|default:"Not Provided" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Mobile Number</label> <div class="fw-bold">{{ employee.mobile|default:"Not Provided" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Assigned Project Site</label> <div class="fw-bold"> {% if employee.assigned_site %} <i class="bi bi-geo-alt-fill text-primary me-1"></i> {{ employee.assigned_site.name }} {% else %} <span class="text-muted">Unassigned</span> {% endif %} </div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Monthly Salary</label> <div class="fw-bold">{% if employee.salary %}{{ employee.salary|to_inr }}{% else %}-{% endif %}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Government ID</label> <div class="fw-bold">{{ employee.government_id|default:"-" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Username (Login)</label> <div class="fw-bold">{{ employee.username }}</div> </div> </div> </div> </div> </div> <!-- Profile Timeline/Activity Header --> <div class="card border-0 shadow-sm"> <div class="card-header bg-white py-3"> <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i> Profile Log</h5> </div> <div class="card-body"> <div class="d-flex align-items-center"> <div class="bg-light p-3 rounded-pill me-3"> <i class="bi bi-arrow-repeat text-muted"></i> </div> <div> <p class="mb-0 small text-muted text-uppercase fw-bold">Last Updated</p> <h6 class="mb-0">{{ employee.updated_at|format_datetime }}</h6>
                         </div>
                     </div>
-
-                    <!-- Details Grid -->
-                    <h5 class="fw-bold mb-4 text-muted text-uppercase small">Personal & Work Details</h5>
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Username</label>
-                            <p class="h6 mb-0 text-break">{{ employee.username }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Email</label>
-                            <p class="h6 mb-0 text-break">{{ employee.email|default:"Not Provided" }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Mobile</label>
-                            <p class="h6 mb-0">{{ employee.mobile|default:"Not Provided" }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Assigned Site</label>
-                            <p class="h6 mb-0">
-                                {% if employee.assigned_site %}
-                                <span class="text-primary">{{ employee.assigned_site.name }}</span>
-                                {% else %}
-                                <span class="text-muted fst-italic">No site assigned</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Joining Date</label>
-                            <p class="h6 mb-0">{{ employee.date_joined|format_date }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Salary</label>
-                            <p class="h6 mb-0">{% if employee.salary %}{{ employee.salary|to_inr }}{% else %}Not
-                                Set{% endif %}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="text-muted small text-uppercase fw-bold mb-1">Government ID</label>
-                            <p class="h6 mb-0">{{ employee.government_id|default:"-" }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Activity Log Section -->
-                    <div class="border-top pt-4 mt-2">
-                        <h5 class="fw-bold mb-4 text-muted text-uppercase small">System Activity</h5>
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center p-3 rounded bg-light">
-                                    <div class="me-3 text-muted"><i class="bi bi-clock-history fs-4"></i></div>
-                                    <div>
-                                        <small class="text-muted d-block uppercase fw-bold">Last Profile Update</small>
-                                        <span class="fw-medium text-dark">{{ employee.updated_at|format_datetime}}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center p-3 rounded bg-light">
-                                    <div class="me-3 text-muted"><i class="bi bi-box-arrow-in-right fs-4"></i></div>
-                                    <div>
-                                        <small class="text-muted d-block uppercase fw-bold">Last Login</small>
-                                        <span class="fw-medium text-dark">{{employee.last_login|format_datetime|default:"Never" }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </div>
@@ -165,17 +12,8 @@
 </div>
 
 <style>
-    .breadcrumb-item+.breadcrumb-item::before {
-        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E");
-    }
-
     .card {
         border-radius: 12px;
-    }
-
-    .btn {
-        border-radius: 8px;
-        font-weight: 500;
     }
 </style>
 {% endblock %}

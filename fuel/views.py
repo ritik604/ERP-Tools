@@ -17,9 +17,9 @@ from django.http import HttpResponse
 @login_required
 def fuel_list(request):
     """List all fuel records with filtering options."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     query = request.GET.get('q')
     project_filter = request.GET.get('project')
@@ -85,6 +85,7 @@ def fuel_list(request):
         'filter_fuel_type': fuel_type_filter or '',
         'filter_date_from': date_from or '',
         'filter_date_to': date_to or '',
+        'is_admin': request.user.role in ['ADMIN', 'ELEVATED'],
     }
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -96,7 +97,7 @@ def fuel_list(request):
 @login_required
 def export_fuel_csv(request):
     """Dedicated view for exporting fuel records to CSV."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         return HttpResponse("Access Denied", status=403)
     
     query = request.GET.get('q')
@@ -153,14 +154,21 @@ def export_fuel_csv(request):
 @login_required
 def fuel_create(request):
     """Create a new fuel record."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     if request.method == 'POST':
         form = FuelRecordForm(request.POST, request.FILES)
         if form.is_valid():
             record = form.save()
+            
+            # Handle multiple image uploads
+            from .models import FuelRecordImage
+            files = request.FILES.getlist('images')
+            for f in files:
+                FuelRecordImage.objects.create(fuel_record=record, image=f)
+            
             messages.success(request, f'Fuel record "{record.record_id}" created!')
             return redirect('fuel:fuel_list')
     else:
@@ -175,30 +183,105 @@ def fuel_create(request):
 @login_required
 def fuel_detail(request, pk):
     """View fuel record details."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     record = get_object_or_404(FuelRecord, pk=pk)
     
     return render(request, 'fuel/fuel_detail.html', {
-        'record': record
+        'record': record,
+        'is_admin': request.user.role in ['ADMIN', 'ELEVATED'],
     })
 
 
 @login_required
 def fuel_update(request, pk):
     """Update an existing fuel record."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     record = get_object_or_404(FuelRecord, pk=pk)
     
     if request.method == 'POST':
         form = FuelRecordForm(request.POST, request.FILES, instance=record)
         if form.is_valid():
+            from .models import FuelRecordImage
+            
+            # Capture existing images before any changes
+            existing_images = list(record.images.all())
+            existing_image_names = [img.image.name.split('/')[-1] for img in existing_images]
+            
             form.save()
+            
+            # Track deleted images
+            deleted_image_names = []
+            delete_images = request.POST.get('delete_images', '')
+            if delete_images:
+                image_ids = [int(id) for id in delete_images.split(',') if id.strip()]
+                for image_id in image_ids:
+                    try:
+                        image = FuelRecordImage.objects.get(pk=image_id, fuel_record=record)
+                        deleted_image_names.append(image.image.name.split('/')[-1])
+                        image.image.delete()  # Delete the file
+                        image.delete()  # Delete the record
+                    except FuelRecordImage.DoesNotExist:
+                        pass
+            
+            # Track new images
+            new_image_names = []
+            files = request.FILES.getlist('images')
+            for f in files:
+                new_img = FuelRecordImage.objects.create(fuel_record=record, image=f)
+                new_image_names.append(new_img.image.name.split('/')[-1])
+
+            # Update existing audit log entry with image changes if any occurred
+            if deleted_image_names or new_image_names:
+                from audit.models import AuditLog
+                from django.utils import timezone
+                from datetime import timedelta
+                
+                # Calculate remaining images
+                remaining_image_names = [name for name in existing_image_names if name not in deleted_image_names]
+                remaining_image_names.extend(new_image_names)
+                
+                # Build single 'images' change entry with pipe-delimited names
+                image_changes = {
+                    'images': {
+                        'old': ' | '.join(existing_image_names) if existing_image_names else 'None',
+                        'new': ' | '.join(remaining_image_names) if remaining_image_names else 'None'
+                    }
+                }
+                
+                # Find and update the most recent audit entry for this record (created within last 5 seconds)
+                recent_time = timezone.now() - timedelta(seconds=5)
+                existing_audit = AuditLog.objects.filter(
+                    module='fuel',
+                    model_name='FuelRecord',
+                    record_id=str(record.pk),
+                    action='UPDATE',
+                    timestamp__gte=recent_time
+                ).order_by('-timestamp').first()
+                
+                if existing_audit:
+                    # Merge image changes into existing audit entry
+                    existing_audit.changes.update(image_changes)
+                    existing_audit.save()
+                else:
+                    # No recent audit entry found, create one
+                    from audit.middleware import get_current_ip
+                    AuditLog.objects.create(
+                        module='fuel',
+                        model_name='FuelRecord',
+                        record_id=str(record.pk),
+                        record_repr=str(record)[:255],
+                        action='UPDATE',
+                        user=request.user,
+                        changes=image_changes,
+                        ip_address=get_current_ip()
+                    )
+            
             messages.success(request, f'Fuel record "{record.record_id}" updated!')
             return redirect('fuel:fuel_list')
     else:
@@ -214,9 +297,9 @@ def fuel_update(request, pk):
 @login_required
 def fuel_delete(request, pk):
     """Delete a fuel record."""
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     record = get_object_or_404(FuelRecord, pk=pk)
     

@@ -28,6 +28,10 @@ class ProjectSite(models.Model):
     start_date = models.DateField(default=get_ist_date)
     end_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', db_index=True)
+    site_radius = models.PositiveIntegerField(
+        default=500, 
+        help_text="Proximity radius in meters for worker check-in"
+    )
     
     # Placeholders for future modules
     # material_expense = ...

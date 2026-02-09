@@ -2,10 +2,20 @@
 Middleware to capture current user and IP address for audit logging.
 Uses thread-local storage to make user context available in signal handlers.
 """
+import threading
+import logging
 from threading import local
+from django.utils import timezone
+from core.utils import get_ist_now, get_ist_date
+from core.models import SystemTaskLog
+from attendance.management.commands.mark_attendance import run_mark_attendance_logic
 
 _thread_locals = local()
+logger = logging.getLogger(__name__)
 
+# Memory cache to avoid hitting the DB on every single request
+# Stores {task_name: last_run_date}
+_task_run_cache = {}
 
 def get_current_user():
     """Get the current user from thread-local storage."""
@@ -32,6 +42,7 @@ class AuditMiddleware:
         _thread_locals.ip_address = self.get_client_ip(request)
         
         # Self-Triggering Periodic Tasks (Run on first hit after target time)
+        # Optimized to avoid redundant DB checks
         self.check_periodic_tasks()
         
         response = self.get_response(request)
@@ -44,27 +55,29 @@ class AuditMiddleware:
 
     def check_periodic_tasks(self):
         """Checks and runs daily tasks if the time window is met."""
-        import threading
-        from core.utils import get_ist_now, get_ist_date
-        from core.models import SystemTaskLog
-        from attendance.management.commands.mark_attendance import run_mark_attendance_logic
-        import logging
-
-        logger = logging.getLogger(__name__)
         now = get_ist_now()
         today = get_ist_date()
 
         # Task: Mark Absentees (Run after 1:00 PM / 13:00)
+        # 1. Quick hour check
         if now.hour >= 13:
+            # 2. Memory cache check to avoid DB hit on 99.9% of requests
+            if _task_run_cache.get('mark_absent') == today:
+                return
+
             try:
-                # 1. Fast DB check in main thread to avoid spawning multiple threads
+                # 3. DB check (Only happens once per process per day)
                 log, created = SystemTaskLog.objects.get_or_create(
                     task_name='mark_absent',
                     run_date=today
                 )
                 
+                # Update memory cache regardless of created status
+                # This stops this process from checking the DB again today
+                _task_run_cache['mark_absent'] = today
+
                 if created:
-                    # 2. Run the heavy work in a background thread
+                    # 4. Run the heavy work in a background thread
                     # Daemon=True ensures it doesn't block server shutdown
                     thread = threading.Thread(
                         target=run_mark_attendance_logic,

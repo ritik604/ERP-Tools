@@ -5,20 +5,25 @@ from core.utils import get_ist_now, get_ist_date
 
 class CustomUserManager(UserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields['role'] = 'ADMIN'
+        extra_fields['role'] = CustomUser.ROLE_ADMIN
         return super().create_superuser(username, email, password, **extra_fields)
 
 class CustomUser(AbstractUser):
+    ROLE_ADMIN = 'ADMIN'
+    ROLE_ELEVATED = 'ELEVATED'
+    ROLE_BASIC = 'BASIC'
+
     ROLE_CHOICES = (
-        ('ADMIN', 'Admin'),
-        ('SUPERVISOR', 'Supervisor'),
-        ('WORKER', 'Worker'),
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_ELEVATED, 'Elevated'),
+        (ROLE_BASIC, 'Basic'),
     )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='WORKER', db_index=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_BASIC, db_index=True)
     employee_id = models.CharField(max_length=20, unique=True, editable=False)
     government_id = models.CharField(max_length=50, blank=True, null=True, help_text="Aadhar/SSN etc.")
     salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     mobile = models.CharField(max_length=15, blank=True, null=True)
+    designation = models.CharField(max_length=100, blank=True, null=True)
     date_joined = models.DateField(default=get_ist_date)
     updated_at = models.DateTimeField(default=get_ist_now)
     assigned_site = models.ForeignKey('projects.ProjectSite', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_workers')

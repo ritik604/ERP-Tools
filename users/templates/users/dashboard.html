@@ -18,76 +18,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div class="stat-subtitle">Total Projects</div>
-                        <div class="stat-value">{{ total_projects|default:"0" }}</div>
-                        <p class="stat-description">Active construction sites.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-building"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-4">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Total Employees</div>
-                        <div class="stat-value">{{ total_employees|default:"0" }}</div>
-                        <p class="stat-description">Supervisors and Workers across sites.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-people"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-4">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Total Budget</div>
-                        <div class="stat-value">{{ total_budget|to_inr }}</div>
-                        <p class="stat-description">Allocated budget across all active sites.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-cash-stack"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% elif user.role == 'SUPERVISOR' %}
-<div class="alert alert-info" role="alert">
-    Welcome back, Supervisor! You have {{ assigned_workers|default:"0" }} workers under your supervision.
-</div>
-<div class="action-card text-center mb-4">
-    <div class="card-header">
-        Daily Actions
-    </div>
-    <div class="card-body py-4">
-        <h5 class="card-title mb-2">Mark Attendance</h5>
-        <p class="text-muted">Check in to your project site.</p>
-        <a href="{% url 'attendance:mark_attendance' %}" class="btn btn-primary btn-lg">Check In Now</a>
-    </div>
-</div>
-<!-- Supervisor specific content -->
-{% elif user.role == 'WORKER' %}
-<div class="action-card text-center">
-    <div class="card-header">
-        Daily Actions
-    </div>
-    <div class="card-body py-4">
-        <h5 class="card-title mb-2">Mark Attendance</h5>
-        <p class="text-muted">Check in to your assigned site to mark your attendance for today.</p>
-        <a href="{% url 'attendance:mark_attendance' %}" class="btn btn-primary btn-lg">Check In Now</a>
-    </div>
-    <div class="card-footer">
-        Your last check-in was at: {{ last_checkin|format_datetime|default:"Never" }}
+                        <div class="stat-value">{{ total_projects|default:"0" }}</div> <p class="stat-description">Active construction sites.</p> </div> <div class="stat-icon"> <i class="bi bi-building"></i> </div> </div> </div> </div> </div> <div class="col-12 col-lg-4"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Total Employees</div> <div class="stat-value">{{ total_employees|default:"0" }}</div> <p class="stat-description">Elevated and Basic employees across sites.</p> </div> <div class="stat-icon"> <i class="bi bi-people"></i> </div> </div> </div> </div> </div> <div class="col-12 col-lg-4"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Total Budget</div> <div class="stat-value">{{ total_budget|to_inr }}</div> <p class="stat-description">Allocated budget across all active sites.</p> </div> <div class="stat-icon"> <i class="bi bi-cash-stack"></i> </div> </div> </div> </div> </div> </div> {% elif user.role == 'ELEVATED' %} <div class="alert alert-info" role="alert"> Welcome back, Elevated! You have {{ assigned_workers|default:"0" }} workers under your supervision. </div> <div class="action-card text-center mb-4"> <div class="card-header"> Daily Actions </div> <div class="card-body py-4"> {% if not attendance_marked %} <h5 class="card-title mb-2">Mark Attendance</h5> <p class="text-muted">Check in to your project site.</p> <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#attendanceCheckInModal">Check In Now</button> {% else %} <h5 class="card-title mb-2 text-success">Attendance Marked</h5> <p class="text-muted">You have already checked in today.</p> <button class="btn btn-success btn-lg" disabled>Checked In</button> {% endif %} </div> </div> <!-- Supervisor specific content --> {% elif user.role == 'BASIC' %} <div class="action-card text-center"> <div class="card-header"> Daily Actions </div> <div class="card-body py-4"> {% if not attendance_marked %} <h5 class="card-title mb-2">Mark Attendance</h5> <p class="text-muted">Check in to your assigned site to mark your attendance for today.</p> <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#attendanceCheckInModal">Check In Now</button> {% else %} <h5 class="card-title mb-2 text-success">Attendance Marked</h5> <p class="text-muted">You have already checked in today.</p> <button class="btn btn-success btn-lg" disabled>Checked In</button> {% endif %} </div> <div class="card-footer"> Your last check-in was at: {{ last_checkin|format_datetime|default:"Never" }}
     </div>
 </div>
 {% endif %}

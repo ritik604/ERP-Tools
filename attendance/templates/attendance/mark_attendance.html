@@ -13,147 +13,78 @@
             </div>
             <div class="card-body text-center py-4">
                 {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
+                <div class="alert alert-danger">{{ error }}</div> {% endif %} {% if already_checked_in %} <div class="py-4"> <div class="mb-4"> <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i> </div> <h5 class="text-success mb-3">You're checked in!</h5> <p class="text-muted">You have already marked your attendance for today.</p> <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary btn-lg w-100 mt-3"> <i class="bi bi-clock-history"></i> View History </a> </div> {% elif user.assigned_site %} <div class="py-3"> <div class="mb-4"> <span class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 80px; height: 80px;"> <i class="bi bi-geo-alt text-primary" style="font-size: 2.5rem;"></i> </span> </div> <p class="lead mb-1">Assigned Site:</p> <h4 class="fw-bold text-primary mb-2">{{ user.assigned_site.name }}</h4> <p class="text-muted small mb-4"> <i class="bi bi-pin-map"></i> {{ user.assigned_site.latitude }}, {{ user.assigned_site.longitude }} </p> <form method="post" id="attendanceForm"> {% csrf_token %} <input type="hidden" name="latitude" id="latitude"> <input type="hidden" name="longitude" id="longitude"> <div id="locationStatus" class="alert alert-info py-3 mb-4"> <i class="bi bi-radar"></i> Detecting your location... </div> <button type="submit" class="btn btn-success btn-lg w-100 py-3" id="submitBtn" disabled> <i class="bi bi-check-circle-fill"></i> Confirm Check-In </button> </form> </div> {% else %} <div class="py-4"> <div class="mb-4"> <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i> </div> <h5 class="text-warning mb-3">Not Assigned</h5> <p class="text-muted">You are not assigned to any project site. Please contact your supervisor.</p> <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary btn-lg w-100 mt-3"> <i class="bi bi-house"></i> Back to Dashboard </a> </div> {% endif %} </div> </div> </div> </div> <script> document.addEventListener("DOMContentLoaded", function () { const statusDiv = document.getElementById("locationStatus"); const submitBtn = document.getElementById("submitBtn"); const latInput = document.getElementById("latitude"); const lonInput = document.getElementById("longitude"); // Site details from Django context const siteLat = parseFloat("{{ user.assigned_site.latitude|default:0 }}"); const siteLon = parseFloat("{{ user.assigned_site.longitude|default:0 }}"); const siteRad = parseInt("{{ user.assigned_site.site_radius|default:500 }}");
 
-                {% if already_checked_in %}
-                <div class="py-4">
-                    <div class="mb-4">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                    </div>
-                    <h5 class="text-success mb-3">You're checked in!</h5>
-                    <p class="text-muted">You have already marked your attendance for today.</p>
-                    <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary btn-lg w-100 mt-3">
-                        <i class="bi bi-clock-history"></i> View History
-                    </a>
-                </div>
-                {% elif site %}
-                <div class="py-3">
-                    <div class="mb-4">
-                        <span
-                            class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle"
-                            style="width: 80px; height: 80px;">
-                            <i class="bi bi-geo-alt text-primary" style="font-size: 2.5rem;"></i>
-                        </span>
-                    </div>
-                    <p class="lead mb-1">Assigned Site:</p>
-                    <h4 class="fw-bold text-primary mb-2">{{ site.name }}</h4>
-                    <p class="text-muted small mb-4">
-                        <i class="bi bi-pin-map"></i> {{ site.latitude }}, {{ site.longitude }}
-                    </p>
+        // Haversine formula to calculate distance between two coordinates
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c * 1000; // Return distance in meters
+        }
 
-                    <form method="post" id="attendanceForm">
-                        {% csrf_token %}
-                        <input type="hidden" name="latitude" id="latitude">
-                        <input type="hidden" name="longitude" id="longitude">
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
 
-                        <div id="locationStatus" class="alert alert-info py-3 mb-4">
-                            <i class="bi bi-radar"></i> Detecting your location...
-                        </div>
+                    latInput.value = userLat;
+                    lonInput.value = userLon;
 
-                        <button type="submit" class="btn btn-success btn-lg w-100 py-3" id="submitBtn" disabled>
-                            <i class="bi bi-check-circle-fill"></i> Confirm Check-In
-                        </button>
-                    </form>
-                </div>
-                {% else %}
-                <div class="py-4">
-                    <div class="mb-4">
-                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
-                    </div>
-                    <h5 class="text-warning mb-3">Not Assigned</h5>
-                    <p class="text-muted">You are not assigned to any project site. Please contact your supervisor.</p>
-                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg w-100 mt-3">
-                        <i class="bi bi-house"></i> Back to Dashboard
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+                    const distance = calculateDistance(userLat, userLon, siteLat, siteLon);
+                    const distRound = Math.round(distance);
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const statusDiv = document.getElementById("locationStatus");
-        const submitBtn = document.getElementById("submitBtn");
-        const latInput = document.getElementById("latitude");
-        const lonInput = document.getElementById("longitude");
-
-        // Site coordinates from Django context
-        const siteLat = {{ site.latitude|default:"0" }};
-    const siteLon = {{ site.longitude|default:"0" }};
-
-    // Haversine formula to calculate distance between two coordinates
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth's radius in km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    }
-
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            function (position) {
-                const userLat = position.coords.latitude;
-                const userLon = position.coords.longitude;
-
-                latInput.value = userLat;
-                lonInput.value = userLon;
-
-                const distance = calculateDistance(userLat, userLon, siteLat, siteLon);
-                const distanceStr = distance.toFixed(2);
-
-                if (distance <= 1.0) {
-                    statusDiv.className = "alert alert-success py-3 mb-4";
-                    statusDiv.innerHTML = `
+                    if (distance <= siteRad) {
+                        statusDiv.className = "alert alert-success py-3 mb-4";
+                        statusDiv.innerHTML = `
                             <i class="bi bi-geo-alt-fill text-success"></i> 
                             <strong>Location verified!</strong><br>
-                            <small>You are ${distanceStr} km from the site (within 1 km range)</small>
+                            <small>You are ${distRound}m from the site (within ${siteRad}m range)</small>
                         `;
-                    submitBtn.disabled = false;
-                    submitBtn.className = "btn btn-success btn-lg w-100 py-3";
-                } else {
-                    statusDiv.className = "alert alert-danger py-3 mb-4";
-                    statusDiv.innerHTML = `
+                        submitBtn.disabled = false;
+                        submitBtn.className = "btn btn-success btn-lg w-100 py-3";
+                    } else {
+                        statusDiv.className = "alert alert-danger py-3 mb-4";
+                        statusDiv.innerHTML = `
                             <i class="bi bi-geo-alt-fill text-danger"></i> 
                             <strong>Too far from site!</strong><br>
-                            <small>You are ${distanceStr} km away. Attendance can only be marked within 1 km of the site.</small>
+                            <small>You are ${distRound}m away. Target range: ${siteRad}m.</small>
                         `;
-                    submitBtn.disabled = true;
-                    submitBtn.className = "btn btn-secondary btn-lg w-100 py-3";
-                    submitBtn.innerHTML = '<i class="bi bi-x-circle"></i> Cannot Check-In (Too Far)';
-                }
-            },
-            function (error) {
-                let msg = "Error getting location.";
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        msg = "Location permission denied. Please enable location access in your browser settings.";
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        msg = "Location information is unavailable.";
-                        break;
-                    case error.TIMEOUT:
-                        msg = "The request to get user location timed out.";
-                        break;
-                    case error.UNKNOWN_ERROR:
-                        msg = "An unknown error occurred.";
-                        break;
-                }
-                statusDiv.className = "alert alert-danger py-3 mb-4";
-                statusDiv.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${msg}`;
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    } else {
-        statusDiv.className = "alert alert-danger py-3 mb-4";
-        statusDiv.innerHTML = `<i class="bi bi-x-circle text-danger"></i> Geolocation is not supported by this browser.`;
-    }
+                        submitBtn.disabled = true;
+                        submitBtn.className = "btn btn-secondary btn-lg w-100 py-3";
+                        submitBtn.innerHTML = '<i class="bi bi-x-circle"></i> Too Far to Check-In';
+                    }
+                },
+                function (error) {
+                    let msg = "Error getting location.";
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg = "Location permission denied. Please enable location access.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg = "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            msg = "The request to get user location timed out.";
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            msg = "An unknown error occurred.";
+                            break;
+                    }
+                    statusDiv.className = "alert alert-danger py-3 mb-4";
+                    statusDiv.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${msg}`;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } else {
+            statusDiv.className = "alert alert-danger py-3 mb-4";
+            statusDiv.innerHTML = `<i class="bi bi-x-circle text-danger"></i> Geolocation not supported.`;
+        }
     });
 </script>
 {% endblock %}

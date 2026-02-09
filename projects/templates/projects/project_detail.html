@@ -2,162 +2,39 @@
 {% load currency_tags %}
 {% load date_tags %}
 
-{% block title %}{{ project.name }} - Details{% endblock %}
-
-{% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">{{ project.name }} <small class="text-muted">({{ project.site_id }})</small></h1>
-</div>
-
-<!-- Analytics Cards Row -->
-<div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Completion</div>
-                        <div class="stat-value">{{ completion_percentage }}%</div>
+{% block title %}{{ project.name }} - Details{% endblock %} {% block content %} <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"> <h1 class="h2">{{ project.name }} <small class="text-muted">({{ project.site_id }})</small></h1> </div> <!-- Analytics Cards Row --> <div class="row g-3 mb-4"> <div class="col-sm-6 col-xl-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Completion</div> <div class="stat-value">{{ completion_percentage }}%</div>
                     </div>
                     <div class="stat-icon">
                         <i class="bi bi-check-circle"></i>
                     </div>
                 </div>
                 <div class="progress">
-                    <div class="progress-bar" role="progressbar" style="width: {{ completion_percentage }}%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Milestones</div>
-                        <div class="stat-value">{{ completed_milestones }}/{{ total_milestones }}</div>
-                        <p class="stat-description">Completed</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-flag-fill"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Total Expense</div>
-                        <div class="stat-value">{{ total_expense|to_inr }}</div>
-                        <p class="stat-description">Budget: {{ project.budget|to_inr }}</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-cash-stack"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Days Elapsed</div>
-                        <div class="stat-value">{{ days_spent }} Days</div>
-                        <p class="stat-description">Started: {{ project.start_date|format_date }}</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-calendar-event"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Milestones Table -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Milestones</h5>
-        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
-            <i class="bi bi-plus-lg"></i> Add Milestone
-        </button>
-    </div>
-    <div class="card-body p-0">
-        {% if milestones %}
-        <div class="table-container">
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Deadline</th>
-                        <th scope="col">Status</th>
-                        <th scope="col" style="width: 25%;">Progress</th>
-                        <th scope="col">Image</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for milestone in milestones %}
-                    <tr>
-                        <td>
-                            <strong>{{ milestone.name }}</strong>
+                    <div class="progress-bar" role="progressbar" style="width: {{ completion_percentage }}%"></div> </div> </div> </div> </div> <div class="col-sm-6 col-xl-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Milestones</div> <div class="stat-value">{{ completed_milestones }}/{{ total_milestones }}</div> <p class="stat-description">Completed</p> </div> <div class="stat-icon"> <i class="bi bi-flag-fill"></i> </div> </div> </div> </div> </div> <div class="col-sm-6 col-xl-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Total Expense</div> <div class="stat-value">{{ total_expense|to_inr }}</div>
+                        <p class="stat-description">Budget: {{ project.budget|to_inr }}</p> </div> <div class="stat-icon"> <i class="bi bi-cash-stack"></i> </div> </div> </div> </div> </div> <div class="col-sm-6 col-xl-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Days Elapsed</div> <div class="stat-value">{{ days_spent }} Days</div>
+                        <p class="stat-description">Started: {{ project.start_date|format_date }}</p> </div> <div class="stat-icon"> <i class="bi bi-calendar-event"></i> </div> </div> </div> </div> </div> </div> <!-- Milestones Table --> <div class="card shadow-sm mb-4"> <div class="card-header bg-light d-flex justify-content-between align-items-center"> <h5 class="mb-0">Milestones</h5> {% if user.role == 'ADMIN' or user.role == 'ELEVATED' %} <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addMilestoneModal"> <i class="bi bi-plus-lg"></i> Add Milestone </button> {% endif %} </div> <div class="card-body p-0"> {% if milestones %} <div class="table-container"> <table class="modern-table"> <thead> <tr> <th scope="col">Name</th> <th scope="col">Deadline</th> <th scope="col">Status</th> <th scope="col" style="width: 25%;">Progress</th> <th scope="col">Image</th> <th scope="col">Actions</th> </tr> </thead> <tbody> {% for milestone in milestones %} <tr> <td> <strong>{{ milestone.name }}</strong>
                             {% if milestone.description %}
-                            <br><small class="text-muted">{{ milestone.description|truncatechars:50 }}</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span
-                                class="{% if milestone.deadline|date:'Y-m-d' < now|date:'Y-m-d' and milestone.status != 'COMPLETED' %}text-danger fw-medium{% endif %}">
-                                {{ milestone.deadline|format_date }}
+                            <br><small class="text-muted">{{ milestone.description|truncatechars:50 }}</small> {% endif %} </td> <td> <span class="{% if milestone.deadline|date:'Y-m-d' < now|date:'Y-m-d' and milestone.status != 'COMPLETED' %}text-danger fw-medium{% endif %}"> {{ milestone.deadline|format_date }}
                             </span>
                         </td>
                         <td>
-                            {{ milestone.get_status_display }}
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                    <div class="progress-bar bg-primary" role="progressbar"
-                                        style="width: {{ milestone.progress }}%;"
-                                        aria-valuenow="{{ milestone.progress }}" aria-valuemin="0" aria-valuemax="100">
-                                    </div>
-                                </div>
-                                <span class="small text-muted">{{ milestone.progress }}%</span>
+                            {{ milestone.get_status_display }} </td> <td> <div class="d-flex align-items-center"> <div class="progress flex-grow-1 me-2" style="height: 6px;"> <div class="progress-bar bg-primary" role="progressbar" style="width: {{ milestone.progress }}%;"
+                                        aria-valuenow="{{ milestone.progress }}" aria-valuemin="0" aria-valuemax="100"> </div> </div> <span class="small text-muted">{{ milestone.progress }}%</span>
                             </div>
                         </td>
                         <td>
                             {% if milestone.images.exists %}
                             <button type="button" class="btn btn-sm btn-outline-secondary btn-table-action"
-                                data-bs-toggle="modal" data-bs-target="#galleryModal{{ milestone.id }}">
-                                <i class="bi bi-images"></i> Gallery ({{ milestone.images.count }})
+                                data-bs-toggle="modal" data-bs-target="#galleryModal{{ milestone.id }}"> <i class="bi bi-images"></i> Gallery ({{ milestone.images.count }})
                             </button>
 
                             <!-- Gallery Modal -->
-                            <div class="modal fade" id="galleryModal{{ milestone.id }}" tabindex="-1"
-                                aria-hidden="true">
-                                <div class="modal-dialog modal-lg modal-dialog-centered">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">{{ milestone.name }} - Images</h5>
+                            <div class="modal fade" id="galleryModal{{ milestone.id }}" tabindex="-1" aria-hidden="true"> <div class="modal-dialog modal-lg modal-dialog-centered"> <div class="modal-content"> <div class="modal-header"> <h5 class="modal-title">{{ milestone.name }} - Images</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                                 aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body p-0">
-                                            <div id="carousel{{ milestone.id }}" class="carousel slide"
-                                                data-bs-ride="carousel">
-                                                <div class="carousel-indicators">
-                                                    {% for img in milestone.images.all %}
-                                                    <button type="button" data-bs-target="#carousel{{ milestone.id }}"
-                                                        data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active" aria-current="true"{% endif %}
-                                                        aria-label="Slide {{ forloop.counter }}"></button>
+                                            <div id="carousel{{ milestone.id }}" class="carousel slide" data-bs-ride="carousel"> <div class="carousel-indicators"> {% for img in milestone.images.all %} <button type="button" data-bs-target="#carousel{{ milestone.id }}"
+                                                        data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active" aria-current="true" {% endif %} aria-label="Slide {{ forloop.counter }}"></button>
                                                     {% endfor %}
                                                 </div>
                                                 <div class="carousel-inner bg-dark">
@@ -166,25 +43,14 @@
                                                         style="height: 500px;">
                                                         <div
                                                             class="d-flex h-100 align-items-center justify-content-center">
-                                                            <img src="{{ img.image.url }}" class="img-fluid"
-                                                                style="max-height: 100%; max-width: 100%; object-fit: contain;"
-                                                                alt="Milestone Image">
-                                                        </div>
-                                                        <div
-                                                            class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-1">
-                                                            <small>Uploaded: {{ img.uploaded_at|format_datetime}}</small>
+                                                            <img src="{{ img.image.url }}" class="img-fluid" style="max-height: 100%; max-width: 100%; object-fit: contain;" alt="Milestone Image"> </div> <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-1"> <small>Uploaded: {{ img.uploaded_at|format_datetime}}</small>
                                                         </div>
                                                     </div>
                                                     {% endfor %}
                                                 </div>
                                                 {% if milestone.images.count > 1 %}
                                                 <button class="carousel-control-prev" type="button"
-                                                    data-bs-target="#carousel{{ milestone.id }}" data-bs-slide="prev">
-                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Previous</span>
-                                                </button>
-                                                <button class="carousel-control-next" type="button"
-                                                    data-bs-target="#carousel{{ milestone.id }}" data-bs-slide="next">
+                                                    data-bs-target="#carousel{{ milestone.id }}" data-bs-slide="prev"> <span class="carousel-control-prev-icon" aria-hidden="true"></span> <span class="visually-hidden">Previous</span> </button> <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ milestone.id }}" data-bs-slide="next">
                                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                                     <span class="visually-hidden">Next</span>
                                                 </button>
@@ -199,10 +65,12 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if user.role == 'ADMIN' or user.role == 'ELEVATED' %}
                             <a href="{% url 'projects:milestone_update' project.pk milestone.id %}"
                                 class="btn btn-sm btn-outline-primary btn-table-action">
                                 <i class="bi bi-pencil"></i> Edit
                             </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -224,6 +92,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-light d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Project Information</h5>
+                {% if user.role == 'ADMIN' or user.role == 'ELEVATED' %}
                 <div>
                     <a href="{% url 'projects:project_delete' project.pk %}" class="btn btn-sm btn-outline-danger me-2">
                         <i class="bi bi-trash"></i> Delete
@@ -232,98 +101,35 @@
                         <i class="bi bi-pencil"></i> Edit
                     </a>
                 </div>
+                {% endif %}
             </div>
             <div class="card-body">
                 <table class="table table-sm table-borderless mb-0">
                     <tr>
                         <th style="width: 40%;">Status:</th>
-                        <td>{{ project.get_status_display }}</td>
-                    </tr>
-                    <tr>
-                        <th style="width: 40%;">Project ID:</th>
-                        <td>{{ project.site_id }}</td>
+                        <td>{{ project.get_status_display }}</td> </tr> <tr> <th style="width: 40%;">Project ID:</th> <td>{{ project.site_id }}</td>
                     </tr>
                     <tr>
                         <th style="width: 40%;">Location:</th>
                         <td>
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ project.latitude }},{{ project.longitude }}"
-                                target="_blank" class="text-decoration-none d-flex align-items-center">
-                                <i class="bi bi-geo-alt-fill text-danger me-2"></i>
-                                <span>{{ project.latitude }}, {{ project.longitude }}</span>
-                                <i class="bi bi-box-arrow-up-right ms-2 small text-muted"></i>
-                            </a>
-                        </td>
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ project.latitude }},{{ project.longitude }}" target="_blank" class="text-decoration-none d-flex align-items-center"> <i class="bi bi-geo-alt-fill text-danger me-2"></i> <span>{{ project.latitude }}, {{ project.longitude }}</span> <i class="bi bi-box-arrow-up-right ms-2 small text-muted"></i> </a> </td> </tr> <tr> <th>Site Radius:</th> <td>{{ project.site_radius }} meters</td>
                     </tr>
                     <tr>
                         <th>Budget:</th>
-                        <td>{{ project.budget|to_inr }}</td>
-                    </tr>
-                    <tr>
-                        <th>Start Date:</th>
-                        <td>{{ project.start_date|format_date }}</td>
+                        <td>{{ project.budget|to_inr }}</td> </tr> <tr> <th>Start Date:</th> <td>{{ project.start_date|format_date }}</td>
                     </tr>
                     <tr>
                         <th>End Date:</th>
-                        <td>{{ project.end_date|format_date|default:"Ongoing" }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">People Assigned</div>
-            <div class="card-body">
-                {% if project.assigned_workers.all %}
-                <ul class="list-group list-group-flush">
-                    {% for worker in project.assigned_workers.all %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        {{ worker.get_full_name|default:worker.username }}
-                        <span>{{ worker.role }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-muted mb-0">No one assigned yet.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Milestone Modal -->
-<div class="modal fade" id="addMilestoneModal" tabindex="-1" aria-labelledby="addMilestoneModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addMilestoneModalLabel">Add New Milestone</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="{% url 'projects:project_detail' project.pk %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Name</label>
-                            {{ milestone_form.name }}
+                        <td>{{ project.end_date|format_date|default:"Ongoing" }}</td> </tr> </table> </div> </div> </div> <div class="col-md-6 mb-4"> <div class="card shadow-sm"> <div class="card-header bg-light">People Assigned</div> <div class="card-body"> {% if project.assigned_workers.all %} <ul class="list-group list-group-flush"> {% for worker in project.assigned_workers.all %} <li class="list-group-item d-flex justify-content-between align-items-center px-0"> {{ worker.get_full_name|default:worker.username }}
+                        <span>{{ worker.role }}</span> </li> {% endfor %} </ul> {% else %} <p class="text-muted mb-0">No one assigned yet.</p> {% endif %} </div> </div> </div> </div> <!-- Add Milestone Modal --> <div class="modal fade" id="addMilestoneModal" tabindex="-1" aria-labelledby="addMilestoneModalLabel" aria-hidden="true"> <div class="modal-dialog modal-lg"> <div class="modal-content"> <div class="modal-header"> <h5 class="modal-title" id="addMilestoneModalLabel">Add New Milestone</h5> <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> </div> <form method="post" action="{% url 'projects:project_detail' project.pk %}" enctype="multipart/form-data"> {% csrf_token %} <div class="modal-body"> <div class="row g-3"> <div class="col-md-6"> <label class="form-label">Name</label> {{ milestone_form.name }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Deadline</label>
-                            {{ milestone_form.deadline }}
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Description</label>
-                            {{ milestone_form.description }}
+                            {{ milestone_form.deadline }} </div> <div class="col-12"> <label class="form-label">Description</label> {{ milestone_form.description }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Status</label>
-                            {{ milestone_form.status }}
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Progress (%)</label>
-                            {{ milestone_form.progress }}
+                            {{ milestone_form.status }} </div> <div class="col-md-4"> <label class="form-label">Progress (%)</label> {{ milestone_form.progress }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Images (Multiple)</label>

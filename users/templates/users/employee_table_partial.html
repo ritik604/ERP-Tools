@@ -14,22 +14,13 @@
         <tbody id="employeeTableBody">
             {% for emp in employees %}
             <tr class="employee-row"
-                data-name="{{ emp.get_full_name|default:emp.username|lower }} {{ emp.employee_id|lower }}"
-                data-role="{{ emp.role }}" data-site="{{ emp.assigned_site.id|default:'' }}"
-                data-status="{{ emp.is_active|yesno:'active,inactive' }}">
-                <td class="fw-medium text-dark">{{ emp.employee_id }}</td>
-                <td>{{ emp.get_full_name|default:emp.username }}</td>
-                <td>{{ emp.role }}</td>
-                <td>{{ emp.assigned_site.name|default:"Unassigned" }}</td>
-                <td>
-                    {% load currency_tags %}
-                    {% if emp.salary %}{{ emp.salary|to_inr }}{% else %}-{% endif %}
+                data-name="{{ emp.get_full_name|default:emp.username|lower }} {{ emp.employee_id|lower }} {{ emp.designation|default:''|lower }}" data-role="{{ emp.role }}" data-site="{{ emp.assigned_site.id|default:'' }}" data-status="{{ emp.is_active|yesno:'active,inactive' }}"> <td class="fw-medium text-dark">{{ emp.employee_id }}</td> <td> {{ emp.get_full_name|default:emp.username }} {% if emp.designation %} <div class="small text-muted">{{ emp.designation }}</div> {% endif %} </td> <td>{{ emp.get_role_display }}</td> <td>{{ emp.assigned_site.name|default:"Unassigned" }}</td> <td> {% load currency_tags %} {% if emp.salary %}{{ emp.salary|to_inr }}{% else %}-{% endif %}
                 </td>
                 <td>
                     {% if emp.is_active %}
-                    Active
+                    <span class="text-success">Active</span>
                     {% else %}
-                    Inactive
+                    <span class="text-danger">Inactive</span>
                     {% endif %}
                 </td>
                 <td>

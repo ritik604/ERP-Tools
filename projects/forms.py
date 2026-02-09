@@ -4,7 +4,7 @@ from .models import ProjectSite, Milestone
 class ProjectSiteForm(forms.ModelForm):
     class Meta:
         model = ProjectSite
-        fields = ['name', 'latitude', 'longitude', 'budget', 'start_date', 'end_date', 'status']
+        fields = ['name', 'latitude', 'longitude', 'budget', 'site_radius', 'start_date', 'end_date', 'status']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),

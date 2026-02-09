@@ -8,9 +8,9 @@ from projects.models import ProjectSite
 
 @login_required
 def vehicle_list(request):
-    if request.user.role not in ['ADMIN', 'SUPERVISOR']:
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
-        return redirect('dashboard')
+        return redirect('home')
     
     vehicles = Vehicle.objects.all().select_related('assigned_site')
     
@@ -40,14 +40,14 @@ def vehicle_list(request):
         'search_query': search_query,
         'type_filter': type_filter,
         'site_filter': site_filter,
-        'is_admin': request.user.role == 'ADMIN',
+        'is_admin': request.user.role in ['ADMIN', 'ELEVATED'],
         'vehicle_types': Vehicle.VEHICLE_TYPE_CHOICES
     }
     return render(request, 'vehicles/vehicle_list.html', context)
 
 @login_required
 def vehicle_create(request):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Only Admins can add vehicles.")
         return redirect('vehicle_list')
     
@@ -64,19 +64,19 @@ def vehicle_create(request):
 
 @login_required
 def vehicle_detail(request, pk):
-    if request.user.role not in ['ADMIN', 'SUPERVISOR']:
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Access Denied.")
         return redirect('dashboard')
     
     vehicle = get_object_or_404(Vehicle, pk=pk)
     return render(request, 'vehicles/vehicle_detail.html', {
         'vehicle': vehicle, 
-        'is_admin': request.user.role == 'ADMIN'
+        'is_admin': request.user.role in ['ADMIN', 'ELEVATED']
     })
 
 @login_required
 def vehicle_update(request, pk):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Only Admins can update vehicle details.")
         return redirect('vehicle_list')
     
@@ -95,7 +95,7 @@ def vehicle_update(request, pk):
 
 @login_required
 def vehicle_delete(request, pk):
-    if request.user.role != 'ADMIN':
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
         messages.error(request, "Only Admins can delete vehicles.")
         return redirect('vehicle_list')
     

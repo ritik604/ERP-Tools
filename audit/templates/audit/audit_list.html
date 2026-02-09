@@ -23,32 +23,7 @@
                     <select id="filterModule" class="form-select" aria-label="Select Module">
                         <option value="">All Modules</option>
                         {% for module in modules %}
-                        <option value="{{ module }}" {% if filter_module == module %}selected{% endif %}>{{ module|title
-                            }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <select id="filterAction" class="form-select" aria-label="Select Action">
-                        <option value="">All Actions</option>
-                        {% for action_code, action_name in actions %}
-                        <option value="{{ action_code }}" {% if filter_action == action_code %}selected{% endif %}>{{
-                            action_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <select id="filterUser" class="form-select" aria-label="Select User">
-                        <option value="">All Users</option>
-                        {% for u in users %}
-                        <option value="{{ u.id }}" {% if filter_user == u.id|stringformat:"i" %}selected{% endif %}>{{
-                            u.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <input type="{% if filter_date_from %}date{% else %}text{% endif %}" id="filterDateFrom"
-                        class="form-control" value="{{ filter_date_from }}" placeholder="From Date"
+                        <option value="{{ module }}" {% if filter_module == module %}selected{% endif %}>{{ module|title }}</option> {% endfor %} </select> </div> <div class="col-6 col-md-2"> <select id="filterAction" class="form-select" aria-label="Select Action"> <option value="">All Actions</option> {% for action_code, action_name in actions %} <option value="{{ action_code }}" {% if filter_action == action_code %}selected{% endif %}>{{ action_name }}</option> {% endfor %} </select> </div> <div class="col-6 col-md-2"> <select id="filterUser" class="form-select" aria-label="Select User"> <option value="">All Users</option> {% for u in users %} <option value="{{ u.id }}" {% if filter_user == u.id|stringformat:"i" %}selected{% endif %}>{{ u.username }}</option> {% endfor %} </select> </div> <div class="col-6 col-md-2"> <input type="{% if filter_date_from %}date{% else %}text{% endif %}" id="filterDateFrom" class="form-control" value="{{ filter_date_from }}" placeholder="From Date"
                         onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'">
                 </div>
                 <div class="col-6 col-md-2">
@@ -149,9 +124,6 @@
 
     function resetFilters() {
         document.getElementById('auditFilterForm').reset();
-        // Manually reset values in case form reset doesn't clear value attribute? 
-        // Form reset clears to initial value. If page loaded with filters, initial value is filtered.
-        // We should clear values explicitly.
         document.getElementById('filterModule').value = '';
         document.getElementById('filterAction').value = '';
         document.getElementById('filterUser').value = '';

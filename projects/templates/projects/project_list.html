@@ -12,9 +12,11 @@
     </div>
     <div class="col-md-6">
         <div class="btn-toolbar mb-2 mb-md-0 float-end">
+            {% if user.role == 'ADMIN' or user.role == 'ELEVATED' %}
             <a href="{% url 'projects:project_create' %}" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-plus-lg"></i> New Project Site
             </a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -71,102 +73,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div class="stat-subtitle">Projects</div>
-                        <div class="stat-value" id="cardProjCount">{{ projects|length }}</div>
-                        <p class="stat-description">Filtered project sites.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-building"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Employees</div>
-                        <div class="stat-value" id="cardEmpCount">0</div>
-                        <p class="stat-description">Assigned to these projects.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-people"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Total Budget</div>
-                        <div class="stat-value" id="cardBudgetValue">0</div>
-                        <p class="stat-description">Budget for filtered sites.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-cash-stack"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-subtitle">Attendance</div>
-                        <div class="stat-value" id="cardAttendanceValue">0%</div>
-                        <p class="stat-description">Realtime present estimate.</p>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="table-container">
-    <table class="modern-table">
-        <thead>
-            <tr>
-                <th scope="col">Site ID</th>
-                <th scope="col">Name</th>
-                <th scope="col">Budget</th>
-                <th scope="col">Expense</th>
-                <th scope="col">Progress</th>
-                <th scope="col">Start Date</th>
-                <th scope="col">Status</th>
-                <th scope="col">Action</th>
-            </tr>
-        </thead>
-        <tbody id="projectTableBody">
-            {% for project in projects %}
-            <tr class="project-row" data-name="{{ project.name|lower }}" data-id="{{ project.site_id|lower }}"
-                data-status="{{ project.status }}" data-budget="{{ project.budget|default:0 }}"
-                data-workers="{{ project.worker_count|default:0 }}"
-                data-present="{{ project.present_count|default:0 }}">
-                <td class="fw-medium text-dark">{{ project.site_id }}</td>
-                <td>{{ project.name }}</td>
-                <td>{{ project.budget|to_inr }}</td>
-                <td>{{ project.calculated_expense|to_inr }}</td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="progress flex-grow-1 me-2" style="height: 6px; width: 60px;">
-                            <div class="progress-bar bg-primary" role="progressbar"
-                                style="width: {{ project.calculated_progress }}%"></div>
-                        </div>
-                        <span class="small text-muted">{{ project.calculated_progress|floatformat:0 }}%</span>
-                    </div>
-                </td>
-                <td>{{ project.start_date|format_date }}</td>
-                <td>
-                    {{ project.get_status_display|default:project.status|title }}
+                        <div class="stat-value" id="cardProjCount">{{ projects|length }}</div> <p class="stat-description">Filtered project sites.</p> </div> <div class="stat-icon"> <i class="bi bi-building"></i> </div> </div> </div> </div> </div> <div class="col-12 col-md-6 col-lg-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Employees</div> <div class="stat-value" id="cardEmpCount">0</div> <p class="stat-description">Assigned to these projects.</p> </div> <div class="stat-icon"> <i class="bi bi-people"></i> </div> </div> </div> </div> </div> <div class="col-12 col-md-6 col-lg-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Total Budget</div> <div class="stat-value" id="cardBudgetValue">0</div> <p class="stat-description">Budget for filtered sites.</p> </div> <div class="stat-icon"> <i class="bi bi-cash-stack"></i> </div> </div> </div> </div> </div> <div class="col-12 col-md-6 col-lg-3"> <div class="stat-card h-100"> <div class="card-body"> <div class="d-flex justify-content-between align-items-start"> <div> <div class="stat-subtitle">Attendance</div> <div class="stat-value" id="cardAttendanceValue">0%</div> <p class="stat-description">Realtime present estimate.</p> </div> <div class="stat-icon"> <i class="bi bi-clock-history"></i> </div> </div> </div> </div> </div> </div> <div class="table-container"> <table class="modern-table"> <thead> <tr> <th scope="col">Site ID</th> <th scope="col">Name</th> <th scope="col">Budget</th> <th scope="col">Expense</th> <th scope="col">Progress</th> <th scope="col">Start Date</th> <th scope="col">Status</th> <th scope="col">Action</th> </tr> </thead> <tbody id="projectTableBody"> {% for project in projects %} <tr class="project-row" data-name="{{ project.name|lower }}" data-id="{{ project.site_id|lower }}" data-status="{{ project.status }}" data-budget="{{ project.budget|default:0 }}" data-workers="{{ project.worker_count|default:0 }}" data-present="{{ project.present_count|default:0 }}"> <td class="fw-medium text-dark">{{ project.site_id }}</td> <td>{{ project.name }}</td> <td>{{ project.budget|to_inr }}</td> <td>{{ project.calculated_expense|to_inr }}</td> <td> <div class="d-flex align-items-center"> <div class="progress flex-grow-1 me-2" style="height: 6px; width: 60px;"> <div class="progress-bar bg-primary" role="progressbar" style="width: {{ project.calculated_progress }}%"></div> </div> <span class="small text-muted">{{ project.calculated_progress|floatformat:0 }}%</span> </div> </td> <td>{{ project.start_date|format_date }}</td> <td> {{ project.get_status_display|default:project.status|title }}
                 </td>
                 <td>
                     <a href="{% url 'projects:project_detail' project.pk %}"
@@ -203,6 +110,7 @@
         let visibleCount = 0;
         let totalBudget = 0;
         let totalWorkers = 0;
+        let totalPresent = 0;
 
         rows.forEach(row => {
             const name = row.dataset.name;
@@ -210,6 +118,7 @@
             const status = row.dataset.status;
             const budget = parseFloat(row.dataset.budget) || 0;
             const workers = parseInt(row.dataset.workers) || 0;
+            const present = parseInt(row.dataset.present) || 0;
 
             let show = true;
 
@@ -221,6 +130,7 @@
                 visibleCount++;
                 totalBudget += budget;
                 totalWorkers += workers;
+                totalPresent += present;
             } else {
                 row.style.display = 'none';
             }
@@ -234,13 +144,9 @@
         // Calculate Attendance Percentage
         let attendancePercentage = 0;
         if (totalWorkers > 0) {
-            let totalPresent = 0;
-            rows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    totalPresent += parseInt(row.dataset.present) || 0;
-                }
-            });
             attendancePercentage = Math.round((totalPresent / totalWorkers) * 100);
+        } else {
+            attendancePercentage = 0;
         }
         document.getElementById('cardAttendanceValue').textContent = attendancePercentage + "%";
 
