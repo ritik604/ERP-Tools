@@ -4,6 +4,7 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 from django.conf import settings
 import re
+import os
 
 class Command(BaseCommand):
     help = 'Crawls all URLs in the project and checks their response status.'
@@ -12,25 +13,30 @@ class Command(BaseCommand):
         self.stdout.write("Starting health check...")
         
         # Create a test superuser for testing protected views
-        User = get_user_model()
-        username = 'healthcheck_admin'
-        password = 'healthcheck_password'
-        email = 'healthcheck@example.com'
-        
-        try:
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_superuser(username, email, password)
-                user.role = 'ADMIN'
-                user.save()
-                self.stdout.write(self.style.SUCCESS(f"Created temporary superuser '{username}'"))
-            else:
-                user = User.objects.get(username=username)
-                if user.role != 'ADMIN':
+        # Only do this if DEBUG is True to avoid accidental user creation in production
+        if not settings.DEBUG:
+             self.stdout.write(self.style.WARNING("Health check running in production mode. Skipping temporary user creation."))
+             user = None
+        else:
+            User = get_user_model()
+            username = os.environ.get('HEALTH_CHECK_USER', 'healthcheck_admin')
+            password = os.environ.get('HEALTH_CHECK_PASSWORD', 'healthcheck_password_replace_me')
+            email = 'healthcheck@example.com'
+            
+            try:
+                if not User.objects.filter(username=username).exists():
+                    user = User.objects.create_superuser(username, email, password)
                     user.role = 'ADMIN'
                     user.save()
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"Could not create/get superuser: {e}. Proceeding as anonymous."))
-            user = None
+                    self.stdout.write(self.style.SUCCESS(f"Created temporary superuser '{username}'"))
+                else:
+                    user = User.objects.get(username=username)
+                    if user.role != 'ADMIN':
+                        user.role = 'ADMIN'
+                        user.save()
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Could not create/get superuser: {e}. Proceeding as anonymous."))
+                user = None
 
         # Add testserver to ALLOWED_HOSTS dynamically to avoid 400 errors
         if 'testserver' not in settings.ALLOWED_HOSTS:

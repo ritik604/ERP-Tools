@@ -102,6 +102,7 @@ re_repair_*.py
 generate_*.py
 debug_*.py
 locust*.py
+test_*.py
 
 # ========================================
 # Agent & AI Tool Directories
