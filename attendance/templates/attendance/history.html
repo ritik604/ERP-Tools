@@ -18,8 +18,8 @@
         <div class="card-body py-3">
             <form id="attendanceFilterForm" onsubmit="applyFilters(); return false;">
                 <div class="row g-2">
-                    <div class="col-12 col-md-3">
-                        <input type="text" id="filterName" class="form-control" placeholder="Search Name..."
+                    <div class="col-12 col-md-2">
+                        <input type="text" id="filterName" class="form-control" placeholder="Search..."
                             value="{{ filter_name }}">
                     </div>
 
@@ -36,6 +36,16 @@
                     {% endif %}
 
                     <div class="col-6 col-md-2">
+                        <select id="filterStatus" class="form-select">
+                            <option value="">All Statuses</option>
+                            {% for code, label in status_choices %}
+                            <option value="{{ code }}" {% if filter_status == code %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-6 col-md-2">
                         <input type="date" id="filterStart" class="form-control" value="{{ filter_start }}"
                             placeholder="From">
                     </div>
@@ -44,10 +54,11 @@
                             placeholder="To">
                     </div>
 
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <div class="d-flex gap-2">
-                            <button type="button" onclick="applyFilters()" class="btn btn-primary flex-grow-1">
-                                <i class="bi bi-search"></i> <span class="d-none d-md-inline">Apply</span>
+                            <button type="button" onclick="applyFilters()" class="btn btn-primary flex-grow-1"
+                                title="Apply Filter">
+                                <i class="bi bi-search"></i>
                             </button>
                             <button type="button" onclick="resetFilters()" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-lg"></i>
@@ -76,12 +87,14 @@
     function fetchPage(pageNumber = 1) {
         const nameVal = document.getElementById('filterName').value;
         const siteVal = document.getElementById('filterSite') ? document.getElementById('filterSite').value : '';
+        const statusVal = document.getElementById('filterStatus').value;
         const startVal = document.getElementById('filterStart').value;
         const endVal = document.getElementById('filterEnd').value;
 
         const params = new URLSearchParams({
             name: nameVal,
             site: siteVal,
+            status: statusVal,
             start_date: startVal,
             end_date: endVal,
             page: pageNumber
@@ -113,12 +126,14 @@
         if (e) e.preventDefault();
         const nameVal = document.getElementById('filterName').value;
         const siteVal = document.getElementById('filterSite') ? document.getElementById('filterSite').value : '';
+        const statusVal = document.getElementById('filterStatus').value;
         const startVal = document.getElementById('filterStart').value;
         const endVal = document.getElementById('filterEnd').value;
 
         const params = new URLSearchParams({
             name: nameVal,
             site: siteVal,
+            status: statusVal,
             start_date: startVal,
             end_date: endVal
         });

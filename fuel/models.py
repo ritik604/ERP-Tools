@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from projects.models import ProjectSite
+from core.utils import get_ist_now, get_ist_date
 
 
 class FuelRecord(models.Model):
@@ -20,7 +21,7 @@ class FuelRecord(models.Model):
         on_delete=models.CASCADE, 
         related_name='fuel_records'
     )
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=get_ist_date)
     fuel_type = models.CharField(
         max_length=20, 
         choices=FUEL_TYPE_CHOICES, 
@@ -56,8 +57,8 @@ class FuelRecord(models.Model):
         help_text="Select vehicle or equipment"
     )
     notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(default=get_ist_now, editable=False)
+    updated_at = models.DateTimeField(default=get_ist_now)
     
     class Meta:
         ordering = ['-date', '-created_at']
@@ -69,6 +70,11 @@ class FuelRecord(models.Model):
     
     def save(self, *args, **kwargs):
         from decimal import Decimal  # Defensively import to avoid NameError
+        
+        # Update timestamp manually since we removed auto_now=True
+        if self.pk:
+            self.updated_at = get_ist_now()
+
         # Auto-generate record_id
         if not self.record_id:
             with transaction.atomic():
@@ -82,7 +88,7 @@ class FuelRecord(models.Model):
         # Calculate rates and costs
         if self.total_cost > 0 and self.quantity_liters > 0:
             # If we have total and quantity, calculate rate
-            self.price_per_liter = (self.total_cost / self.quantity_liters).quantize(Decimal('0.01'))
+            self.price_per_liter = (Decimal(str(self.total_cost)) / Decimal(str(self.quantity_liters))).quantize(Decimal('0.01'))
         elif self.price_per_liter and self.price_per_liter > 0 and self.quantity_liters > 0:
             # Fallback: calculate total from rate and quantity
             self.total_cost = (self.quantity_liters * self.price_per_liter).quantize(Decimal('0.01'))

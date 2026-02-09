@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from users.models import CustomUser
-from attendance.models import Attendance
+from attendance.models import Attendance, get_ist_date
 import datetime
 
 class Command(BaseCommand):
@@ -25,7 +25,7 @@ class Command(BaseCommand):
                 return
         else:
             # Default to today in local timezone (IST as per settings)
-            target_date = timezone.localdate()
+            target_date = get_ist_date()
 
         self.stdout.write(f"Running mark_absent for date: {target_date}")
 

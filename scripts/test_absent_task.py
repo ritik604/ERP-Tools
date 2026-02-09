@@ -4,6 +4,7 @@ import django
 from django.conf import settings
 from django.core.management import call_command
 from django.utils import timezone
+from core.utils import get_ist_date
 from datetime import timedelta
 
 # Setup Django
@@ -32,7 +33,7 @@ def run_test():
     worker.save()
 
     # Ensure no attendance for today
-    today = timezone.localdate()
+    today = get_ist_date()
     Attendance.objects.filter(worker=worker, date=today).delete()
     
     # Clear audit logs for attendance to be sure

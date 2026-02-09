@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.utils import timezone
+from core.utils import get_ist_date
 from .models import CustomUser
 
 class CustomUserCreationForm(UserCreationForm):
@@ -28,7 +28,7 @@ class CustomUserCreationForm(UserCreationForm):
     def clean_date_joined(self):
         date = self.cleaned_data.get('date_joined')
         if not date:
-            return timezone.localdate()
+            return get_ist_date()
         return date
 
 class CustomUserUpdateForm(forms.ModelForm):
@@ -43,5 +43,5 @@ class CustomUserUpdateForm(forms.ModelForm):
     def clean_date_joined(self):
         date = self.cleaned_data.get('date_joined')
         if not date:
-            return self.instance.date_joined or timezone.localdate()
+            return self.instance.date_joined or get_ist_date()
         return date

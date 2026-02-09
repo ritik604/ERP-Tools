@@ -8,6 +8,7 @@ from .models import ProjectSite, Milestone, MilestoneImage
 from .forms import ProjectSiteForm, MilestoneForm
 from fuel.models import FuelRecord
 from users.models import CustomUser
+from core.utils import get_ist_date
 import csv
 from django.http import HttpResponse
 
@@ -21,7 +22,11 @@ def project_list(request):
     query = request.GET.get('q')
     status_filter = request.GET.get('status')
 
-    projects = ProjectSite.objects.annotate(worker_count=Count('assigned_workers'))
+    today = get_ist_date()
+    projects = ProjectSite.objects.annotate(
+        worker_count=Count('assigned_workers', filter=Q(assigned_workers__is_active=True), distinct=True),
+        present_count=Count('site_attendance', filter=Q(site_attendance__date=today, site_attendance__status='PRESENT'), distinct=True)
+    )
 
     if query:
         projects = projects.filter(Q(name__icontains=query) | Q(site_id__icontains=query))

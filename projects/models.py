@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
+from core.utils import get_ist_now, get_ist_date
 
 class ProjectSite(models.Model):
     STATUS_CHOICES = (
@@ -24,7 +25,7 @@ class ProjectSite(models.Model):
         default=0.00,
         validators=[MinValueValidator(0)]
     )
-    start_date = models.DateField(default=timezone.now)
+    start_date = models.DateField(default=get_ist_date)
     end_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', db_index=True)
     
@@ -82,7 +83,7 @@ class Milestone(models.Model):
 class MilestoneImage(models.Model):
     milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='milestone_images/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField(default=get_ist_now, editable=False)
 
     def __str__(self):
         return f"Image for {self.milestone.name}"

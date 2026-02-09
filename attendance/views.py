@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Attendance
+from .models import Attendance, get_ist_date, get_ist_now
 from projects.models import ProjectSite
 from django.utils import timezone
 from geopy.distance import geodesic
@@ -17,7 +17,7 @@ def mark_attendance(request):
     if not assigned_site:
         return render(request, 'attendance/error.html', {'message': "You are not assigned to any site."})
 
-    today = timezone.now().date()
+    today = get_ist_date()
     already_checked_in = Attendance.objects.filter(worker=user, date=today).exists()
 
     if request.method == 'POST':
@@ -48,7 +48,7 @@ def mark_attendance(request):
             worker=user,
             site=assigned_site,
             date=today,
-            check_in_time=timezone.now(),
+            check_in_time=get_ist_now(),
             status='PRESENT',
             latitude=lat,
             longitude=lon,
@@ -85,9 +85,10 @@ def attendance_list(request):
     site_id = request.GET.get('site')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    status = request.GET.get('status')
 
     if start_date is None and end_date is None:
-        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        today_str = get_ist_date().strftime('%Y-%m-%d')
         start_date = today_str
         end_date = today_str
 
@@ -100,6 +101,9 @@ def attendance_list(request):
     
     if site_id:
         queryset = queryset.filter(site__id=site_id)
+    
+    if status:
+        queryset = queryset.filter(status=status)
     
     if start_date:
         queryset = queryset.filter(date__gte=start_date)
@@ -130,12 +134,14 @@ def attendance_list(request):
         'unique_employees': unique_employees,
         'total_count': total_count,
         'sites': ProjectSite.objects.all() if user.role == 'ADMIN' else [user.assigned_site] if user.assigned_site else [],
+        'status_choices': Attendance.STATUS_CHOICES,
         
         # Keep filter values for non-AJAX requests (not strictly needed with AJAX approach but good for initial load)
         'filter_name': name_query or '',
         'filter_site': site_id or '',
         'filter_start': start_date or '',
         'filter_end': end_date or '',
+        'filter_status': status or '',
     }
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -164,9 +170,10 @@ def export_attendance_csv(request):
     site_id = request.GET.get('site')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    status = request.GET.get('status')
 
     if start_date is None and end_date is None:
-        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        today_str = get_ist_date().strftime('%Y-%m-%d')
         start_date = today_str
         end_date = today_str
 
@@ -179,6 +186,9 @@ def export_attendance_csv(request):
     
     if site_id:
         queryset = queryset.filter(site__id=site_id)
+        
+    if status:
+        queryset = queryset.filter(status=status)
     
     if start_date:
         queryset = queryset.filter(date__gte=start_date)

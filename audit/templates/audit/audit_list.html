@@ -23,7 +23,8 @@
                     <select id="filterModule" class="form-select" aria-label="Select Module">
                         <option value="">All Modules</option>
                         {% for module in modules %}
-                        <option value="{{ module }}" {% if filter_module == module %}selected{% endif %}>{{ module|title }}</option>
+                        <option value="{{ module }}" {% if filter_module == module %}selected{% endif %}>{{ module|title
+                            }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -31,7 +32,8 @@
                     <select id="filterAction" class="form-select" aria-label="Select Action">
                         <option value="">All Actions</option>
                         {% for action_code, action_name in actions %}
-                        <option value="{{ action_code }}" {% if filter_action == action_code %}selected{% endif %}>{{ action_name }}</option>
+                        <option value="{{ action_code }}" {% if filter_action == action_code %}selected{% endif %}>{{
+                            action_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -39,7 +41,8 @@
                     <select id="filterUser" class="form-select" aria-label="Select User">
                         <option value="">All Users</option>
                         {% for u in users %}
-                        <option value="{{ u.id }}" {% if filter_user == u.id|stringformat:"i" %}selected{% endif %}>{{ u.username }}</option>
+                        <option value="{{ u.id }}" {% if filter_user == u.id|stringformat:"i" %}selected{% endif %}>{{
+                            u.username }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -61,7 +64,7 @@
                         </button>
                         <button type="button" onclick="resetFilters()" class="btn btn-outline-secondary flex-grow-1"
                             title="Reset Filters">
-                            <i class="bi bi-arrow-clockwise"></i>
+                            <i class="bi bi-x-lg"></i>
                         </button>
                         <button type="button" onclick="exportCSV(event)" class="btn btn-outline-success flex-grow-1"
                             title="Export to CSV">

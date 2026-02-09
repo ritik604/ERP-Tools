@@ -14,9 +14,16 @@ def format_date(value):
     if value is None or value == "":
         return "-"
     try:
-        # If it's a datetime, convert to date
-        if hasattr(value, 'date'):
-            value = value.date()
+        from datetime import datetime
+        ist = ZoneInfo('Asia/Kolkata')
+        
+        # If it's a datetime (which is a subclass of date), handle timezone
+        if isinstance(value, datetime):
+            if timezone.is_aware(value):
+                value = value.astimezone(ist)
+            else:
+                value = value.replace(tzinfo=ist)
+        
         # Format as '09 Feb 2026'
         return value.strftime('%d %b %Y')
     except (ValueError, TypeError, AttributeError):
@@ -57,12 +64,24 @@ def format_time(value):
     if value is None or value == "":
         return "-"
     try:
-        # If it's a datetime, extract the time
-        if hasattr(value, 'time'):
+        from datetime import datetime, time
+        ist = ZoneInfo('Asia/Kolkata')
+        
+        # If it's a datetime, convert to IST first
+        if isinstance(value, datetime):
+            if timezone.is_aware(value):
+                value = value.astimezone(ist)
+            else:
+                value = value.replace(tzinfo=ist)
             value = value.time()
+        elif isinstance(value, time):
+            # If it's just a time object, we assume it's naive
+            pass
+
         # Format as '01:57 PM'
-        from datetime import datetime
+        # To use strftime on time, we combine with today's date
         dt = datetime.combine(datetime.today(), value)
         return dt.strftime('%I:%M %p')
     except (ValueError, TypeError, AttributeError):
         return value
+

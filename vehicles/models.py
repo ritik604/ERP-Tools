@@ -1,5 +1,6 @@
 from django.db import models, transaction
 from django.utils import timezone
+from core.utils import get_ist_now
 from projects.models import ProjectSite
 
 class Vehicle(models.Model):
@@ -28,8 +29,8 @@ class Vehicle(models.Model):
     last_maintenance_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', db_index=True)
     
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(default=get_ist_now, editable=False)
+    updated_at = models.DateTimeField(default=get_ist_now)
 
     class Meta:
         ordering = ['-created_at']
@@ -40,6 +41,10 @@ class Vehicle(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        # Update timestamp manually
+        if self.pk:
+            self.updated_at = get_ist_now()
+
         if not self.vehicle_id:
             with transaction.atomic():
                 # Get the last vehicle ID in a thread-safe way

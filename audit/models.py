@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from core.utils import get_ist_now
 
 
 class AuditLog(models.Model):
@@ -34,7 +35,7 @@ class AuditLog(models.Model):
     changes = models.JSONField(default=dict)
     
     # When and from where
-    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    timestamp = models.DateTimeField(default=get_ist_now, db_index=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     
     class Meta:

@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from core.utils import get_ist_date
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum
@@ -27,7 +28,7 @@ def fuel_list(request):
     date_to = request.GET.get('date_to')
 
     if date_from is None and date_to is None:
-        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        today_str = get_ist_date().strftime('%Y-%m-%d')
         date_from = today_str
         date_to = today_str
     
@@ -104,7 +105,7 @@ def export_fuel_csv(request):
     date_to = request.GET.get('date_to')
 
     if date_from is None and date_to is None:
-        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        today_str = get_ist_date().strftime('%Y-%m-%d')
         date_from = today_str
         date_to = today_str
     

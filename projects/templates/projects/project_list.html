@@ -65,7 +65,7 @@
 
 <!-- Dashboard Statistics Cards (Now below filter) -->
 <div class="row g-3 mb-4">
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-md-6 col-lg-3">
         <div class="stat-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
@@ -81,7 +81,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-md-6 col-lg-3">
         <div class="stat-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
@@ -97,7 +97,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-md-6 col-lg-3">
         <div class="stat-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
@@ -108,6 +108,22 @@
                     </div>
                     <div class="stat-icon">
                         <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-subtitle">Attendance</div>
+                        <div class="stat-value" id="cardAttendanceValue">0%</div>
+                        <p class="stat-description">Realtime present estimate.</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="bi bi-clock-history"></i>
                     </div>
                 </div>
             </div>
@@ -133,7 +149,8 @@
             {% for project in projects %}
             <tr class="project-row" data-name="{{ project.name|lower }}" data-id="{{ project.site_id|lower }}"
                 data-status="{{ project.status }}" data-budget="{{ project.budget|default:0 }}"
-                data-workers="{{ project.worker_count|default:0 }}">
+                data-workers="{{ project.worker_count|default:0 }}"
+                data-present="{{ project.present_count|default:0 }}">
                 <td class="fw-medium text-dark">{{ project.site_id }}</td>
                 <td>{{ project.name }}</td>
                 <td>{{ project.budget|to_inr }}</td>
@@ -213,6 +230,19 @@
         document.getElementById('cardProjCount').textContent = visibleCount;
         document.getElementById('cardBudgetValue').textContent = formatINR(totalBudget);
         document.getElementById('cardEmpCount').textContent = totalWorkers;
+
+        // Calculate Attendance Percentage
+        let attendancePercentage = 0;
+        if (totalWorkers > 0) {
+            let totalPresent = 0;
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    totalPresent += parseInt(row.dataset.present) || 0;
+                }
+            });
+            attendancePercentage = Math.round((totalPresent / totalWorkers) * 100);
+        }
+        document.getElementById('cardAttendanceValue').textContent = attendancePercentage + "%";
 
         // Sync export button
         const exportBtn = document.getElementById('exportProjBtn');

@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.db.models import Q
 from django.utils import timezone
+from core.utils import get_ist_date
 
 from .models import AuditLog
 from users.models import CustomUser
@@ -27,7 +28,7 @@ def audit_list(request):
     date_to = request.GET.get('date_to')
 
     if date_from is None and date_to is None:
-        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        today_str = get_ist_date().strftime('%Y-%m-%d')
         date_from = today_str
         date_to = today_str
     
@@ -123,7 +124,7 @@ def export_audit_csv(request):
     date_to = request.GET.get('date_to')
 
     if date_from is None and date_to is None:
-        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        today_str = get_ist_date().strftime('%Y-%m-%d')
         date_from = today_str
         date_to = today_str
     
@@ -146,7 +147,7 @@ def export_audit_csv(request):
     response['Content-Disposition'] = 'attachment; filename="audit_logs.csv"'
     
     writer = csv.writer(response)
-    writer.writerow(['Timestamp', 'User', 'Action', 'Module', 'Model', 'Record ID', 'Record', 'Changes', 'IP Address'])
+    writer.writerow(['Timestamp (IST)', 'User', 'Action', 'Module', 'Model', 'Record ID', 'Record', 'Changes', 'IP Address'])
     
     for log in logs:
         writer.writerow([

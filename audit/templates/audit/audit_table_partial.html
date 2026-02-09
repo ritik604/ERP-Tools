@@ -21,7 +21,7 @@
     <table class="table modern-table">
         <thead>
             <tr>
-                <th>Timestamp</th>
+                <th>Timestamp (IST)</th>
                 <th>User</th>
                 <th>Action</th>
                 <th>Module</th>
@@ -33,8 +33,7 @@
             {% for log in page_obj %}
             <tr>
                 <td>
-                    <span class="text-muted">{{ log.timestamp|format_date }}</span><br>
-                    <small class="text-muted">{{ log.timestamp|time:"H:i:s" }} IST</small>
+                    <span class="text-muted small text-nowrap">{{ log.timestamp|format_datetime }}</span>
                 </td>
                 <td>
                     {% if log.user %}
