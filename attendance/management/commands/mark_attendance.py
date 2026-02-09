@@ -34,10 +34,10 @@ def run_mark_attendance_logic(target_date=None):
     Core logic to mark employees absent, generate a report, and log it to a daily file.
     Designed to run safely in a background thread.
     """
-    from django.db import connection, transaction
+    from django.db import close_old_connections, transaction
     
     # Close old connections to ensure thread safety
-    connection.close_old_connections()
+    close_old_connections()
 
     if not target_date:
         target_date = get_ist_date()
