@@ -104,6 +104,20 @@ debug_*.py
 locust*.py
 test_*.py
 comprehensive_template_fix*.py
+delete_*.py
+
+# Templates & Backups
+*.bak
+*.old
+*.orig
+*.tmp
+**/debug_*.txt
+**/temp_*.html
+**/test_*.html
+**/test_*.py
+**/__pycache__/
+**/Thumbs.db
+**/desktop.ini
 
 # ========================================
 # Agent & AI Tool Directories
