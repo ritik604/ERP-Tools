@@ -42,6 +42,7 @@ def run_mark_attendance_logic(target_date=None):
     """
     from django.db import close_old_connections, transaction
     from core.utils import get_ist_now
+    from core.models import SystemTaskLog
     
     try:
         # Close old connections to ensure thread safety
@@ -108,7 +109,15 @@ def run_mark_attendance_logic(target_date=None):
         with open(log_filename, 'w') as f:
             f.write(summary)
 
-        # 7. Cleanup tasks
+        # 7. Update SystemTaskLog to reflect success
+        # This ensures the check-status report is accurate for both manual and automated runs
+        SystemTaskLog.objects.update_or_create(
+            task_name='mark_absent',
+            run_date=target_date,
+            defaults={'completed_at': get_ist_now()}
+        )
+
+        # 8. Cleanup tasks
         cleanup_old_logs()
 
         return count_to_mark, summary

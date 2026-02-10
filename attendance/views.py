@@ -298,7 +298,8 @@ def check_automation_status(request):
          return HttpResponse(f"Error checking DB: {str(e)}", status=500)
 
     # 2. Check Log File
-    LOG_DIR = "attendance_logs"
+    from django.conf import settings
+    LOG_DIR = os.path.join(settings.BASE_DIR, "attendance_logs")
     log_filename = f"attendance_summary_{target_date}.log"
     log_path = os.path.join(LOG_DIR, log_filename)
     file_exists = os.path.exists(log_path)
@@ -314,7 +315,7 @@ def check_automation_status(request):
         output.append("[MISSING] Database Record MISSING")
         
     if file_exists:
-        output.append(f"[OK] Log File Found: {log_path}")
+        output.append(f"[OK] Log File Found: {log_filename}")
         try:
             with open(log_path, 'r') as f:
                 content = f.readlines()

@@ -59,14 +59,15 @@ class AuditMiddleware:
         today = get_ist_date()
 
         # Task: Mark Absentees (Run after 1:00 PM / 13:00)
-        # 1. Quick hour check
         if now.hour >= 13:
             # 2. Memory cache check to avoid DB hit on 99.9% of requests
             if _task_run_cache.get('mark_absent') == today:
                 return
 
             try:
+                import threading
                 # 3. DB check (Only happens once per process per day)
+                # We use get_or_create to ensure only one thread starts the task
                 log, created = SystemTaskLog.objects.get_or_create(
                     task_name='mark_absent',
                     run_date=today
