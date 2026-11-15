@@ -177,6 +177,8 @@
                     <input type="hidden" name="latitude" id="latitude">
                     <input type="hidden" name="longitude" id="longitude">
                     <input type="hidden" name="face_embedding" id="faceEmbedding">
+                    <input type="hidden" name="liveness_verified" id="livenessVerified" value="false">
+                    <input type="hidden" name="photo" id="checkInPhoto">
                     <input type="hidden" name="request_override" id="requestOverride" value="false">
 
                     <button type="submit" class="btn btn-secondary btn-lg w-100 py-3 fw-bold" id="submitBtn" disabled>
@@ -297,6 +299,8 @@
         const latInput = document.getElementById("latitude");
         const lonInput = document.getElementById("longitude");
         const faceInput = document.getElementById("faceEmbedding");
+        const livenessInput = document.getElementById("livenessVerified");
+        const photoInput = document.getElementById("checkInPhoto");
         const overrideInput = document.getElementById("requestOverride");
         const overrideBtn = document.getElementById("modalOverrideBtn");
         const overrideSection = document.getElementById("modalOverrideSection");
@@ -308,11 +312,21 @@
         let currentFacingMode = "user";
         let gpsVerified = false;
         let faceDetected = false;
+        let livenessVerified = false;
+        let blinkStage = 0; // 0: init, 1: open confirmed, 2: closed in blink, 3: completed
         let currentDescriptor = null;
         let failedAttempts = 0;
         let videoStream = null;
         let modelsLoaded = false;
         let detectInterval = null;
+
+        function getEyeAspectRatio(eye) {
+            if (!eye || eye.length < 6) return 0.3;
+            const v1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+            const v2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+            const h  = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+            return h > 0 ? (v1 + v2) / (2.0 * h) : 0.3;
+        }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; // Earth's radius in km
@@ -342,9 +356,15 @@
                     submitBtnText.innerText = "Align Face in Oval...";
                     return;
                 }
+                if (!livenessVerified) {
+                    submitBtn.disabled = true;
+                    submitBtn.className = "btn btn-warning btn-lg w-100 py-3 fw-bold text-dark";
+                    submitBtnText.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1"></span> Please Blink Naturally to Confirm Liveness...';
+                    return;
+                }
                 submitBtn.disabled = false;
                 submitBtn.className = "btn btn-success btn-lg w-100 py-3 fw-bold";
-                submitBtnText.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Confirm Check-In (Face & GPS)';
+                submitBtnText.innerHTML = '<i class="bi bi-shield-check me-1"></i> Confirm Check-In (Live Face & GPS)';
             } else {
                 // Not enrolled yet
                 submitBtn.disabled = false;
@@ -473,26 +493,75 @@
                     }
 
                     if (detection) {
-                        if (guideOval) guideOval.style.borderColor = "#22c55e";
                         currentDescriptor = Array.from(detection.descriptor);
                         if (faceInput) faceInput.value = JSON.stringify(currentDescriptor);
                         faceDetected = true;
 
-                        if (faceLiveTag) {
-                            faceLiveTag.innerText = "Face Detected & Aligned";
-                            faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-success text-white px-3 py-1 small";
+                        // --- Active Blink Liveness Detection ---
+                        if (isFaceEnrolled) {
+                            try {
+                                const leftEye = detection.landmarks.getLeftEye();
+                                const rightEye = detection.landmarks.getRightEye();
+                                const leftEAR = getEyeAspectRatio(leftEye);
+                                const rightEAR = getEyeAspectRatio(rightEye);
+                                const avgEAR = (leftEAR + rightEAR) / 2.0;
+
+                                if (!livenessVerified) {
+                                    if (blinkStage === 0 && avgEAR >= 0.22) {
+                                        blinkStage = 1; // Open eyes registered
+                                    } else if (blinkStage === 1 && avgEAR < 0.18) {
+                                        blinkStage = 2; // Eyes closed in natural blink
+                                    } else if (blinkStage === 2 && avgEAR >= 0.22) {
+                                        blinkStage = 3; // Eyes opened back up -> Blink cycle verified!
+                                        livenessVerified = true;
+                                        if (livenessInput) livenessInput.value = "true";
+
+                                        // Snapshot frame for audit
+                                        try {
+                                            const snapCanvas = document.createElement("canvas");
+                                            snapCanvas.width = vw;
+                                            snapCanvas.height = vh;
+                                            snapCanvas.getContext("2d").drawImage(video, 0, 0, vw, vh);
+                                            if (photoInput) photoInput.value = snapCanvas.toDataURL("image/jpeg", 0.5);
+                                        } catch (snapErr) {}
+                                    }
+                                }
+                            } catch (earErr) {
+                                console.warn("Liveness check:", earErr);
+                            }
+                        } else {
+                            livenessVerified = true;
                         }
 
-                        if (faceStatusCard) {
-                            faceStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
-                            if (faceIcon) faceIcon.className = "bi bi-check-circle-fill text-success me-1";
-                            if (faceStatusText) faceStatusText.innerText = "Face Detected";
+                        if (livenessVerified) {
+                            if (guideOval) guideOval.style.borderColor = "#22c55e";
+                            if (faceLiveTag) {
+                                faceLiveTag.innerText = "✓ Live Person Confirmed";
+                                faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-success text-white px-3 py-1 small shadow-sm";
+                            }
+                            if (faceStatusCard) {
+                                faceStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+                                if (faceIcon) faceIcon.className = "bi bi-shield-check text-success me-1";
+                                if (faceStatusText) faceStatusText.innerText = "Live Face Verified";
+                            }
+                        } else {
+                            if (guideOval) guideOval.style.borderColor = "#f59e0b"; // Warning orange
+                            if (faceLiveTag) {
+                                faceLiveTag.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1"></span> Please Blink Naturally';
+                                faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-warning text-dark px-3 py-1 small shadow-sm";
+                            }
+                            if (faceStatusCard) {
+                                faceStatusCard.className = "p-2 border rounded bg-warning bg-opacity-10 text-warning-emphasis text-center small";
+                                if (faceIcon) faceIcon.className = "bi bi-eye text-warning me-1";
+                                if (faceStatusText) faceStatusText.innerText = "Blink to Verify";
+                            }
                         }
 
                         if (quickEnrollBtn) quickEnrollBtn.disabled = false;
                     } else {
                         if (guideOval) guideOval.style.borderColor = "#4f46e5";
                         faceDetected = false;
+                        blinkStage = 0;
 
                         if (faceLiveTag) {
                             faceLiveTag.innerText = "Position Face Inside Oval";
@@ -628,6 +697,17 @@
                 submitBtnText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying & Saving...';
 
                 const formData = new FormData(form);
+
+                // Capture check-in audit snapshot
+                if (!formData.get("photo") && video && video.videoWidth) {
+                    try {
+                        const snapCanvas = document.createElement("canvas");
+                        snapCanvas.width = video.videoWidth;
+                        snapCanvas.height = video.videoHeight;
+                        snapCanvas.getContext("2d").drawImage(video, 0, 0, snapCanvas.width, snapCanvas.height);
+                        formData.set("photo", snapCanvas.toDataURL("image/jpeg", 0.5));
+                    } catch (snapErr) {}
+                }
 
                 try {
                     const response = await fetch(form.action, {

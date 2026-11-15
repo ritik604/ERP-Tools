@@ -61,6 +61,8 @@ def attendance_list(request):
 
         # Facial Recognition Verification
         face_embedding_raw = request.POST.get('face_embedding')
+        liveness_verified = request.POST.get('liveness_verified') == 'true'
+        photo_data = request.POST.get('photo')
         request_override = request.POST.get('request_override') == 'true'
 
         face_verified = False
@@ -76,6 +78,13 @@ def attendance_list(request):
             else:
                 if not face_embedding_raw:
                     msg = "Live facial scan required for check-in."
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'message': msg})
+                    messages.error(request, msg)
+                    return redirect('attendance:attendance_list')
+
+                if not liveness_verified:
+                    msg = "Liveness verification required. Please look into the camera and blink naturally to prove you are a live person."
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return JsonResponse({'success': False, 'message': msg})
                     messages.error(request, msg)
@@ -115,6 +124,29 @@ def attendance_list(request):
             is_verified = True
             face_verified = False
 
+        # Process check-in audit snapshot
+        check_in_photo_file = None
+        if photo_data and isinstance(photo_data, str) and photo_data.startswith('data:image'):
+            try:
+                import base64
+                from io import BytesIO
+                from PIL import Image
+                from django.core.files.base import ContentFile
+
+                header, encoded = photo_data.split(',', 1)
+                img_bytes = base64.b64decode(encoded)
+                img = Image.open(BytesIO(img_bytes))
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                img.thumbnail((320, 240), Image.LANCZOS)
+                buffer = BytesIO()
+                img.save(buffer, format='JPEG', quality=50, optimize=True)
+                buffer.seek(0)
+                filename = f"checkin_{user.pk}_{today.strftime('%Y%m%d')}.jpg"
+                check_in_photo_file = ContentFile(buffer.read(), name=filename)
+            except Exception:
+                pass
+
         Attendance.objects.create(
             worker=user,
             site=assigned_site,
@@ -126,6 +158,8 @@ def attendance_list(request):
             verified=is_verified,
             face_verified=face_verified,
             face_distance=face_distance,
+            liveness_verified=liveness_verified,
+            check_in_photo=check_in_photo_file,
             verification_mode=verification_mode
         )
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

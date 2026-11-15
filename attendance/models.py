@@ -24,6 +24,8 @@ class Attendance(models.Model):
     verified = models.BooleanField(default=False, help_text="True if location matches site location within radius")
     face_verified = models.BooleanField(default=False, help_text="True if face matches enrolled profile")
     face_distance = models.FloatField(null=True, blank=True, help_text="Euclidean distance score (< 0.55 is match)")
+    liveness_verified = models.BooleanField(default=False, help_text="True if active blink liveness check passed")
+    check_in_photo = models.ImageField(upload_to='attendance_photos/', null=True, blank=True, help_text="Webcam audit snapshot captured at check-in")
     verification_mode = models.CharField(max_length=25, choices=VERIFICATION_MODE_CHOICES, default='GPS_ONLY')
 
     class Meta:
