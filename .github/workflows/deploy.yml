@@ -1,0 +1,22 @@
+name: Deploy to PythonAnywhere
+
+on:
+  push:
+    branches: [ FacialRecognition ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull latest code and reload webapp
+        run: |
+          # 1. Pull latest code via PythonAnywhere Bash API
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.PA_TOKEN }}" \
+            https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/ \
+            -d 'executable=bash'
+
+          # 2. Trigger webapp reload
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.PA_TOKEN }}" \
+            https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_USERNAME }}.pythonanywhere.com/reload/
