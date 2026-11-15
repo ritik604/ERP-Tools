@@ -44,8 +44,10 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     def save(self, *args, **kwargs):
-        from core.utils import get_ist_now # Import locally to avoid circular import if any, though likely safe
+        from core.utils import get_ist_now, get_ist_date # Import locally to avoid circular import if any, though likely safe
         self.updated_at = get_ist_now()
+        if not self.date_joined:
+            self.date_joined = get_ist_date()
 
         if not self.employee_id:
             with transaction.atomic():

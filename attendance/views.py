@@ -6,12 +6,18 @@ from django.utils import timezone
 from geopy.distance import geodesic
 from django.contrib import messages
 
+import base64
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
+
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 import csv
 import json
+from attendance.utils import verify_face_match
 
 @login_required
 def attendance_list(request):
@@ -91,9 +97,6 @@ def attendance_list(request):
                     messages.error(request, msg)
                     return redirect('attendance:attendance_list')
 
-                import json
-                from attendance.utils import verify_face_match
-
                 try:
                     if isinstance(face_embedding_raw, str):
                         live_embedding = json.loads(face_embedding_raw)
@@ -129,11 +132,6 @@ def attendance_list(request):
         check_in_photo_file = None
         if photo_data and isinstance(photo_data, str) and photo_data.startswith('data:image'):
             try:
-                import base64
-                from io import BytesIO
-                from PIL import Image
-                from django.core.files.base import ContentFile
-
                 header, encoded = photo_data.split(',', 1)
                 img_bytes = base64.b64decode(encoded)
                 img = Image.open(BytesIO(img_bytes))
