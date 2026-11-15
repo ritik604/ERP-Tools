@@ -6,46 +6,44 @@ from django.utils import timezone
 from geopy.distance import geodesic
 from django.contrib import messages
 
+from django.http import JsonResponse, HttpResponse
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.template.loader import render_to_string
+import csv
+
 @login_required
-def mark_attendance(request):
+def attendance_list(request):
     user = request.user
-    if user.role not in ['BASIC', 'ELEVATED']:
-        # Admin logic? For now redirect to dashboard
-        return redirect('dashboard')
-    
-    assigned_site = user.assigned_site
-    if not assigned_site:
-        return render(request, 'attendance/error.html', {'message': "You are not assigned to any site."})
 
-    today = get_ist_date()
-    # Check if a record already exists (PRESENT, ABSENT, or LEAVE)
-    existing_attendance = Attendance.objects.filter(worker=user, date=today).exists()
-    
-    if existing_attendance:
-        # If any record exists, they are blocked from self-service check-in
-        return render(request, 'attendance/mark_attendance.html', {
-            'site': assigned_site, 
-            'already_checked_in': True,
-            'message': "Attendance record already exists for today. Please contact an elevated user for any manual updates."
-        })
-
-    from django.http import JsonResponse
-    
+    # Handle Check-In Submission (via AJAX or standard POST)
     if request.method == 'POST':
-        # If they are blocked (already checked in for today)
+        today = get_ist_date()
+        assigned_site = user.assigned_site
+        if not assigned_site and user.role == 'ADMIN':
+            assigned_site = ProjectSite.objects.filter(status='ACTIVE').first()
+
+        existing_attendance = Attendance.objects.filter(worker=user, date=today).exists()
         if existing_attendance:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'message': "Attendance already marked for today."})
+            messages.warning(request, "Attendance already marked for today.")
             return redirect('attendance:attendance_list')
 
-        # For AJAX, data might be in request.POST or JSON body, but standard POST works for simple forms
+        if not assigned_site:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': "You are not assigned to any project site."})
+            messages.error(request, "You are not assigned to any project site.")
+            return redirect('attendance:attendance_list')
+
         lat = request.POST.get('latitude')
         lon = request.POST.get('longitude')
         
         if not lat or not lon:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'message': "Location access required."})
-            return render(request, 'attendance/mark_attendance.html', {'error': "Location access required to mark attendance.", 'site': assigned_site})
+                return JsonResponse({'success': False, 'message': "Location access required to mark attendance."})
+            messages.error(request, "Location access required to mark attendance.")
+            return redirect('attendance:attendance_list')
 
         worker_loc = (float(lat), float(lon))
         site_loc = (assigned_site.latitude, assigned_site.longitude)
@@ -58,13 +56,65 @@ def mark_attendance(request):
             error_msg = f"You are {distance_meters:.0f} meters away from the site. Attendance can only be marked within {max_radius} meters."
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'message': error_msg})
-            return render(request, 'attendance/mark_attendance.html', {
-                'error': error_msg,
-                'site': assigned_site,
-                'distance': round(distance_km, 2),
-                'too_far': True
-            })
-        
+            messages.error(request, error_msg)
+            return redirect('attendance:attendance_list')
+
+        # Facial Recognition Verification
+        face_embedding_raw = request.POST.get('face_embedding')
+        request_override = request.POST.get('request_override') == 'true'
+
+        face_verified = False
+        face_distance = None
+        verification_mode = 'GPS_ONLY'
+        is_verified = True
+
+        if user.is_face_enrolled:
+            if request_override:
+                face_verified = False
+                verification_mode = 'SUPERVISOR_OVERRIDE'
+                is_verified = False
+            else:
+                if not face_embedding_raw:
+                    msg = "Live facial scan required for check-in."
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'message': msg})
+                    messages.error(request, msg)
+                    return redirect('attendance:attendance_list')
+
+                import json
+                from attendance.utils import verify_face_match
+
+                try:
+                    if isinstance(face_embedding_raw, str):
+                        live_embedding = json.loads(face_embedding_raw)
+                    else:
+                        live_embedding = face_embedding_raw
+                except Exception:
+                    live_embedding = None
+
+                is_match, dist, match_msg = verify_face_match(live_embedding, user.face_embedding)
+                face_distance = round(dist, 3)
+
+                if not is_match:
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({
+                            'success': False,
+                            'face_mismatch': True,
+                            'distance': face_distance,
+                            'message': f"Face verification failed (Match Score: {dist:.2f}, Threshold: 0.55). Ensure face is unobstructed and well-lit."
+                        })
+                    messages.error(request, f"Face mismatch ({dist:.2f}). Please try again.")
+                    return redirect('attendance:attendance_list')
+
+                face_verified = True
+                verification_mode = 'GPS_AND_FACE'
+                is_verified = True
+        else:
+            # Un-enrolled workers: fallback to GPS only
+            verification_mode = 'GPS_ONLY'
+            is_verified = True
+            face_verified = False
+
         Attendance.objects.create(
             worker=user,
             site=assigned_site,
@@ -73,25 +123,18 @@ def mark_attendance(request):
             status='PRESENT',
             latitude=lat,
             longitude=lon,
-            verified=True
+            verified=is_verified,
+            face_verified=face_verified,
+            face_distance=face_distance,
+            verification_mode=verification_mode
         )
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True, 'message': "Attendance marked successfully!"})
+            success_msg = "Attendance marked successfully with GPS & Face Verification!" if face_verified else "Attendance recorded successfully!"
+            return JsonResponse({'success': True, 'message': success_msg})
+        messages.success(request, "Attendance marked successfully!")
         return redirect('attendance:attendance_list')
 
-    return render(request, 'attendance/mark_attendance.html', {'site': assigned_site, 'already_checked_in': False})
-
-from django.db.models import Q
-import xlwt
-from django.http import HttpResponse
-
-from django.core.paginator import Paginator
-from django.template.loader import render_to_string
-import csv
-
-@login_required
-def attendance_list(request):
-    user = request.user
+    # GET Request: Display Attendance Records and Check-In Modal
     queryset = Attendance.objects.select_related('worker', 'site').all()
 
     # Base Role Filtering
@@ -151,8 +194,13 @@ def attendance_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    active_site = user.assigned_site
+    if not active_site and user.role == 'ADMIN':
+        active_site = ProjectSite.objects.filter(status='ACTIVE').first()
+
     context = {
         'page_obj': page_obj,
+        'active_site': active_site,
         'attendance_percentage': round(attendance_percentage, 1),
         'unique_employees': unique_employees,
         'attendance_marked': Attendance.objects.filter(worker=user, date=get_ist_date()).exists(),
@@ -173,6 +221,9 @@ def attendance_list(request):
         return HttpResponse(html)
 
     return render(request, 'attendance/history.html', context)
+
+# Backward-compatibility alias
+mark_attendance = attendance_list
 
 @login_required
 def export_attendance_csv(request):
@@ -226,7 +277,7 @@ def export_attendance_csv(request):
     response['Content-Disposition'] = 'attachment; filename="attendance_report.csv"'
     
     writer = csv.writer(response)
-    writer.writerow(['Date', 'Name', 'Designation', 'Site', 'Check In', 'Verified', 'Status'])
+    writer.writerow(['Date', 'Name', 'Designation', 'Site', 'Check In', 'Verified', 'Verification Mode', 'Face Match Score', 'Status'])
     
     for record in queryset:
         writer.writerow([
@@ -236,6 +287,8 @@ def export_attendance_csv(request):
             record.site.name if record.site else "-",
             record.check_in_time.strftime("%I:%M %p") if record.check_in_time else "-",
             "Yes" if record.verified else "No",
+            record.get_verification_mode_display(),
+            f"{record.face_distance:.2f}" if record.face_distance is not None else "-",
             record.get_status_display()
         ])
         

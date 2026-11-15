@@ -166,9 +166,30 @@ def fuel_create(request):
             # Handle multiple image uploads
             from .models import FuelRecordImage
             files = request.FILES.getlist('images')
+            image_names = []
             for f in files:
-                FuelRecordImage.objects.create(fuel_record=record, image=f)
+                new_img = FuelRecordImage.objects.create(fuel_record=record, image=f)
+                image_names.append(new_img.image.name.split('/')[-1])
             
+            # Update audit log with image names
+            if image_names:
+                from django.db import transaction
+                from audit.utils import update_audit_log_with_images
+                from audit.middleware import get_current_ip
+                
+                # Use on_commit to ensure the CREATE audit log (from signal) is committed first
+                transaction.on_commit(
+                    lambda: update_audit_log_with_images(
+                        module='Fuel',
+                        model_name='FuelRecord',
+                        record_id=record.pk,
+                        image_names=image_names,
+                        user=request.user,
+                        ip_address=get_current_ip(),
+                        record_repr=str(record)[:255]
+                    )
+                )
+
             messages.success(request, f'Fuel record "{record.record_id}" created!')
             return redirect('fuel:fuel_list')
     else:

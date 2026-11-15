@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Enroll Face - {{ employee.get_full_name|default:employee.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'employee_list' %}">Employees</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'employee_detail' pk=employee.pk %}">{{ employee.get_full_name|default:employee.username }}</a></li>
+                    <li class="breadcrumb-item active">Enroll Face Profile</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">Biometric Face Enrollment</h2>
+        </div>
+        <div>
+            <a href="{% url 'employee_detail' pk=employee.pk %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-person-bounding-box me-2"></i> Register Facial Descriptor
+                        </h5>
+                        <small class="text-muted">Target Worker: <strong>{{ employee.get_full_name|default:employee.username }}</strong> ({{ employee.employee_id }})</small>
+                    </div>
+                    {% if employee.is_face_enrolled %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                        <i class="bi bi-check-circle me-1"></i> Currently Enrolled
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                        <i class="bi bi-exclamation-circle me-1"></i> Pending Enrollment
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body p-4 text-center">
+                    <!-- Status Alert Banner -->
+                    <div id="statusBanner" class="alert alert-info py-2 mb-3 d-flex align-items-center justify-content-center gap-2">
+                        <div class="spinner-border spinner-border-sm" role="status" id="statusSpinner"></div>
+                        <span id="statusText">Initializing AI facial detection model...</span>
+                    </div>
+
+                    <!-- Camera Control Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                        <span class="small text-muted fw-bold text-uppercase"><i class="bi bi-camera me-1"></i> Video Enrollment</span>
+                        <button type="button" id="flipCamBtn" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-sm">
+                            <i class="bi bi-arrow-repeat me-1"></i> <span id="flipBtnText">Flip Camera (Front / Rear)</span>
+                        </button>
+                    </div>
+
+                    <!-- Video / Camera Container -->
+                    <div class="position-relative mx-auto mb-3 overflow-hidden shadow-sm" style="width: 380px; max-width: 100%; height: 320px; border-radius: 20px; background-color: #0f172a;">
+                        <video id="webcam" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                        <canvas id="overlayCanvas" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none; transform: scaleX(-1);"></canvas>
+                        
+                        <!-- Face Guideline Oval -->
+                        <div id="guideOval" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-pill" 
+                             style="width: 190px; height: 240px; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45); pointer-events: none; transition: border-color 0.3s ease;">
+                        </div>
+
+                        <!-- Live Detection Pulse -->
+                        <div id="detectionTag" class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small">
+                            Detecting...
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar for Multi-Sample Enrollment -->
+                    <div class="mb-3 px-4">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>Enrollment Quality Samples</span>
+                            <span id="sampleCounter">0 / 3 Samples</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div id="sampleProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Guidance Instructions -->
+                    <div class="card bg-light border-0 p-3 mb-4 text-start small">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-lightbulb text-warning me-1"></i> Best Practices for Construction Workers:</h6>
+                        <ul class="mb-0 text-muted ps-3">
+                            <li>Ensure direct lighting on the face (avoid bright sun/shadows behind).</li>
+                            <li>Temporarily pull down safety dust masks/scarves for 3 seconds.</li>
+                            <li>Look directly into the camera inside the oval frame.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" id="startCaptureBtn" class="btn btn-primary btn-lg px-4" disabled>
+                            <i class="bi bi-camera me-1"></i> Capture & Save Face Profile
+                        </button>
+                        {% if employee.is_face_enrolled %}
+                        <a href="{% url 'delete_face' pk=employee.pk %}" class="btn btn-outline-danger btn-lg px-3" onclick="return confirm('Remove existing face registration for this worker?')">
+                            <i class="bi bi-trash"></i> Remove Existing
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load vladmandic/face-api from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("overlayCanvas");
+    const guideOval = document.getElementById("guideOval");
+    const statusBanner = document.getElementById("statusBanner");
+    const statusSpinner = document.getElementById("statusSpinner");
+    const statusText = document.getElementById("statusText");
+    const detectionTag = document.getElementById("detectionTag");
+    const startCaptureBtn = document.getElementById("startCaptureBtn");
+    const sampleProgress = document.getElementById("sampleProgress");
+    const sampleCounter = document.getElementById("sampleCounter");
+
+    const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/";
+    const REQUIRED_SAMPLES = 3;
+    let collectedSamples = [];
+    let isCapturing = false;
+    let modelsLoaded = false;
+    let stream = null;
+    let currentFacingMode = "user";
+    const flipCamBtn = document.getElementById("flipCamBtn");
+
+    async function checkCameraSupport() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoInputs = devices.filter(d => d.kind === "videoinput");
+            if (videoInputs.length > 1) {
+                flipCamBtn.classList.remove("d-none");
+            }
+        } catch (e) {
+            console.warn("enumerateDevices error:", e);
+        }
+    }
+
+    async function startCamera(facingMode = "user") {
+        currentFacingMode = facingMode;
+        const isFront = (facingMode === "user");
+
+        video.style.transform = isFront ? "scaleX(-1)" : "scaleX(1)";
+        canvas.style.transform = isFront ? "scaleX(-1)" : "scaleX(1)";
+
+        const flipBtnText = document.getElementById("flipBtnText");
+        if (flipBtnText) {
+            flipBtnText.innerText = isFront ? "Flip to Rear Camera" : "Flip to Front Camera";
+        }
+
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+        }
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: { ideal: facingMode }
+                },
+                audio: false
+            });
+            video.srcObject = stream;
+            try { await video.play(); } catch(pErr) {}
+            await checkCameraSupport();
+            startDetectionLoop();
+        } catch (err) {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = stream;
+                try { await video.play(); } catch(pErr) {}
+                await checkCameraSupport();
+                startDetectionLoop();
+            } catch (fallbackErr) {
+                statusBanner.className = "alert alert-danger py-2 mb-3";
+                statusSpinner.classList.add("d-none");
+                statusText.innerText = "Camera access denied or unavailable. Please grant camera permissions.";
+                console.error("Camera error:", fallbackErr);
+            }
+        }
+    }
+
+    if (flipCamBtn) {
+        flipCamBtn.addEventListener("click", async () => {
+            flipCamBtn.disabled = true;
+            const nextMode = (currentFacingMode === "user") ? "environment" : "user";
+            await startCamera(nextMode);
+            flipCamBtn.disabled = false;
+        });
+    }
+
+    let detectInterval = null;
+
+    function startDetectionLoop() {
+        if (!modelsLoaded || !video) return;
+        if (detectInterval) clearInterval(detectInterval);
+
+        statusBanner.className = "alert alert-info py-2 mb-3";
+        statusSpinner.classList.add("d-none");
+        statusText.innerText = "Center your face in the oval and click 'Capture'.";
+
+        detectInterval = setInterval(async () => {
+            if (video.paused || video.ended || video.readyState < 2) return;
+
+            const vw = video.videoWidth || 380;
+            const vh = video.videoHeight || 320;
+            if (canvas.width !== vw || canvas.height !== vh) {
+                canvas.width = vw;
+                canvas.height = vh;
+                faceapi.matchDimensions(canvas, { width: vw, height: vh });
+            }
+
+            try {
+                const detection = await faceapi
+                    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.35 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (detection) {
+                    guideOval.style.borderColor = "#22c55e"; // Green border
+                    detectionTag.innerText = "Face Detected (Ready)";
+                    detectionTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-success text-white px-3 py-1 small";
+                    
+                    if (!isCapturing) {
+                        startCaptureBtn.disabled = false;
+                    }
+
+                    // If currently executing multi-frame capture
+                    if (isCapturing && collectedSamples.length < REQUIRED_SAMPLES) {
+                        collectedSamples.push(Array.from(detection.descriptor));
+                        const count = collectedSamples.length;
+                        sampleCounter.innerText = `${count} / ${REQUIRED_SAMPLES} Samples`;
+                        sampleProgress.style.width = `${(count / REQUIRED_SAMPLES) * 100}%`;
+
+                        if (count >= REQUIRED_SAMPLES) {
+                            isCapturing = false;
+                            clearInterval(detectInterval);
+                            await submitEnrollment();
+                        }
+                    }
+                } else {
+                    guideOval.style.borderColor = "#4f46e5"; // Default primary
+                    detectionTag.innerText = "Position face in oval";
+                    detectionTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small";
+                    if (!isCapturing) {
+                        startCaptureBtn.disabled = true;
+                    }
+                }
+            } catch (detErr) {
+                console.error("Enroll detection error:", detErr);
+            }
+        }, 150);
+    }
+
+    video.addEventListener("play", startDetectionLoop);
+    video.addEventListener("loadedmetadata", startDetectionLoop);
+
+    // 1. Start Camera Stream immediately
+    await startCamera("user");
+
+    // 2. Load Face-API models
+    try {
+        statusText.innerText = "Loading lightweight AI face models (~6MB)...";
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        modelsLoaded = true;
+        statusText.innerText = "Models loaded. Center your face in the oval.";
+        startDetectionLoop();
+    } catch (err) {
+        statusBanner.className = "alert alert-danger py-2 mb-3";
+        statusSpinner.classList.add("d-none");
+        statusText.innerText = "Error loading face recognition models. Please check your internet connection.";
+        console.error("Model load error:", err);
+        return;
+    }
+
+    // 4. Trigger Multi-Frame Capture
+    startCaptureBtn.addEventListener("click", () => {
+        isCapturing = true;
+        collectedSamples = [];
+        startCaptureBtn.disabled = true;
+        startCaptureBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Capturing samples...';
+        statusBanner.className = "alert alert-warning py-2 mb-3";
+        statusText.innerText = "Please hold still while we capture 3 alignment samples...";
+    });
+
+    // 5. Submit Enrolled Vectors to Django Backend
+    async function submitEnrollment() {
+        statusBanner.className = "alert alert-primary py-2 mb-3";
+        statusSpinner.classList.remove("d-none");
+        statusText.innerText = "Saving face registration to database...";
+
+        // Capture a snapshot from the webcam for profile photo
+        let photoDataUrl = null;
+        try {
+            const snapCanvas = document.createElement('canvas');
+            snapCanvas.width = video.videoWidth || 380;
+            snapCanvas.height = video.videoHeight || 320;
+            const snapCtx = snapCanvas.getContext('2d');
+            snapCtx.drawImage(video, 0, 0, snapCanvas.width, snapCanvas.height);
+            photoDataUrl = snapCanvas.toDataURL('image/jpeg', 0.4);
+        } catch (snapErr) {
+            console.warn("Photo snapshot failed:", snapErr);
+        }
+
+        try {
+            const csrfToken = "{{ csrf_token }}";
+            const response = await fetch("{% url 'enroll_face' pk=employee.pk %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({
+                    samples: collectedSamples,
+                    photo: photoDataUrl
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                statusBanner.className = "alert alert-success py-2 mb-3";
+                statusSpinner.classList.add("d-none");
+                statusText.innerText = "Face registered successfully! Redirecting...";
+
+                // Stop webcam
+                if (stream) stream.getTracks().forEach(t => t.stop());
+
+                setTimeout(() => {
+                    window.location.href = "{% url 'employee_detail' pk=employee.pk %}";
+                }, 1200);
+            } else {
+                throw new Error(result.message || "Failed to register face.");
+            }
+        } catch (err) {
+            statusBanner.className = "alert alert-danger py-2 mb-3";
+            statusSpinner.classList.add("d-none");
+            statusText.innerText = `Error: ${err.message}`;
+            startCaptureBtn.disabled = false;
+            startCaptureBtn.innerHTML = '<i class="bi bi-camera me-1"></i> Retry Capture';
+            isCapturing = false;
+            sampleProgress.style.width = "0%";
+            sampleCounter.innerText = `0 / ${REQUIRED_SAMPLES} Samples`;
+        }
+    }
+});
+</script>
+{% endblock %}

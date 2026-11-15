@@ -25,6 +25,17 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['role'].help_text = "Select role: Admin, Elevated, or Basic"
         self.fields['assigned_site'].help_text = "Assign a project site immediately (Optional)"
 
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username:
+            username = username.strip()
+            qs = CustomUser.objects.filter(username__iexact=username)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("A user with that username already exists.")
+        return username
+
     def clean_date_joined(self):
         date = self.cleaned_data.get('date_joined')
         if not date:
@@ -46,6 +57,17 @@ class CustomUserUpdateForm(forms.ModelForm):
         
         if self.request_user and self.request_user.role == CustomUser.ROLE_ELEVATED:
             self.fields['role'].choices = [(CustomUser.ROLE_BASIC, 'Basic')]
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username:
+            username = username.strip()
+            qs = CustomUser.objects.filter(username__iexact=username)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("A user with that username already exists.")
+        return username
 
     def clean_date_joined(self):
         date = self.cleaned_data.get('date_joined')

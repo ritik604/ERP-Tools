@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% load date_tags %}
 
-{% block title %}Attendance History{% endblock %}
+{% block title %}Attendance{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Attendance History</h1>
+    <h1 class="h2">Attendance</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'attendance:mark_attendance' %}" class="btn btn-primary">
+        <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary">
             <i class="bi bi-check-circle"></i> <span class="d-none d-sm-inline">Mark Attendance</span><span
                 class="d-sm-none">Check-in</span>
         </a>

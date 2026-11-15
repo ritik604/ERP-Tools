@@ -2,7 +2,73 @@
 {% load currency_tags %}
 {% load date_tags %}
 
-{% block title %}Employee Profile - {{ employee.get_full_name|default:employee.username }}{% endblock %} {% block content %} <div class="container-fluid py-4"> <!-- Breadcrumb & Header --> <div class="d-flex justify-content-between align-items-center mb-4"> <div> <nav aria-label="breadcrumb"> <ol class="breadcrumb mb-1"> <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Home</a></li> <li class="breadcrumb-item"><a href="{% url 'employee_list' %}">Employees</a></li> <li class="breadcrumb-item active">{{ employee.get_full_name|default:employee.username }}</li> </ol> </nav> <h2 class="fw-bold mb-0">Employee Profile</h2> </div> <div class="d-flex gap-2"> {% if is_admin %} <a href="{% url 'employee_update' pk=employee.pk %}" class="btn btn-primary shadow-sm"> <i class="bi bi-pencil-square me-2"></i> Edit Profile </a> {% endif %} <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary"> <i class="bi bi-arrow-left me-2"></i> All Employees </a> </div> </div> <div class="row g-4"> <div class="col-lg-4"> <!-- Profile Overview Card --> <div class="card border-0 shadow-sm text-center p-4"> <div class="bg-primary bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;"> <i class="bi bi-person-circle text-primary" style="font-size: 3.5rem;"></i> </div> <h3 class="fw-bold mb-1">{{ employee.get_full_name|default:employee.username }}</h3> <p class="text-muted mb-3">{{ employee.designation|default:employee.get_role_display }}</p> <div class="d-flex justify-content-center gap-2 mb-4"> {% if employee.is_active %} <span class="badge bg-success rounded-pill px-3 py-2"> <i class="bi bi-check-circle me-1"></i> Active </span> {% else %} <span class="badge bg-danger rounded-pill px-3 py-2"> <i class="bi bi-x-circle me-1"></i> Inactive </span> {% endif %} <span class="badge bg-light text-dark rounded-pill px-3 py-2 border">ID: {{ employee.employee_id }}</span> </div> <div class="border-top pt-4"> <div class="row g-0"> <div class="col-6 border-end"> <label class="small text-muted text-uppercase fw-bold d-block">Joining Date</label> <div class="fw-bold">{{ employee.date_joined|format_date }}</div> </div> <div class="col-6"> <label class="small text-muted text-uppercase fw-bold d-block">Last Login</label> <div class="fw-bold">{{ employee.last_login|format_datetime|default:"Never" }}</div> </div> </div> </div> </div> {% if is_admin %} <div class="mt-4"> <label class="small text-muted text-uppercase fw-bold mb-2">Management Actions</label> <div class="d-grid gap-2"> <a href="{% url 'reset_password' pk=employee.pk %}" class="btn btn-outline-warning" onclick="return confirm('Reset password to worker123?')"> <i class="bi bi-key me-2"></i> Reset Access </a> <a href="{% url 'toggle_employee_status' pk=employee.pk %}" class="btn {% if employee.is_active %}btn-outline-danger{% else %}btn-success{% endif %}"> <i class="bi bi-power me-2"></i> {% if employee.is_active %}Deactivate Profile{% else %}Activate Profile{% endif %} </a> </div> </div> {% endif %} </div> <div class="col-lg-8"> <!-- Personal Details --> <div class="card border-0 shadow-sm mb-4"> <div class="card-header bg-white py-3"> <h5 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i> Detailed Information </h5> </div> <div class="card-body"> <div class="row g-4"> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Work Email</label> <div class="fw-bold">{{ employee.email|default:"Not Provided" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Mobile Number</label> <div class="fw-bold">{{ employee.mobile|default:"Not Provided" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Assigned Project Site</label> <div class="fw-bold"> {% if employee.assigned_site %} <i class="bi bi-geo-alt-fill text-primary me-1"></i> {{ employee.assigned_site.name }} {% else %} <span class="text-muted">Unassigned</span> {% endif %} </div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Monthly Salary</label> <div class="fw-bold">{% if employee.salary %}{{ employee.salary|to_inr }}{% else %}-{% endif %}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Government ID</label> <div class="fw-bold">{{ employee.government_id|default:"-" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Username (Login)</label> <div class="fw-bold">{{ employee.username }}</div> </div> </div> </div> </div> </div> <!-- Profile Timeline/Activity Header --> <div class="card border-0 shadow-sm"> <div class="card-header bg-white py-3"> <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i> Profile Log</h5> </div> <div class="card-body"> <div class="d-flex align-items-center"> <div class="bg-light p-3 rounded-pill me-3"> <i class="bi bi-arrow-repeat text-muted"></i> </div> <div> <p class="mb-0 small text-muted text-uppercase fw-bold">Last Updated</p> <h6 class="mb-0">{{ employee.updated_at|format_datetime }}</h6>
+{% block title %}Employee Profile - {{ employee.get_full_name|default:employee.username }}
+
+
+
+
+{% endblock %} {% block content %} <div class="container-fluid py-4"> <!-- Breadcrumb & Header --> <div class="d-flex justify-content-between align-items-center mb-4"> <div> <nav aria-label="breadcrumb"> <ol class="breadcrumb mb-1"> <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Home</a></li> <li class="breadcrumb-item"><a href="{% url 'employee_list' %}">Employees</a></li> <li class="breadcrumb-item active">{{ employee.get_full_name|default:employee.username }}</li> </ol> </nav> <h2 class="fw-bold mb-0">Employee Profile</h2> </div> <div class="d-flex gap-2">
+
+{% if is_admin %} <a href="{% url 'employee_update' pk=employee.pk %}" class="btn btn-primary shadow-sm"> <i class="bi bi-pencil-square me-2"></i> Edit Profile </a>
+
+
+
+
+
+{% endif %} <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary"> <i class="bi bi-arrow-left me-2"></i> All Employees </a> </div> </div> <div class="row g-4"> <div class="col-lg-4"> <!-- Profile Overview Card --> <div class="card border-0 shadow-sm text-center p-4"> {% if employee.profile_photo %}
+<img src="{{ employee.profile_photo.url }}" alt="{{ employee.username }}" class="rounded-circle mx-auto mb-3 object-fit-cover border shadow-sm" style="width: 100px; height: 100px;">
+{% else %}
+<div class="bg-primary bg-opacity-10 rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;"> <i class="bi bi-person-circle text-primary" style="font-size: 3.5rem;"></i> </div>
+{% endif %} <h3 class="fw-bold mb-1">{{ employee.get_full_name|default:employee.username }}</h3> <p class="text-muted mb-3">{{ employee.designation|default:employee.get_role_display }}</p> <div class="d-flex justify-content-center gap-2 mb-4">
+
+{% if employee.is_active %} <span class="badge bg-success rounded-pill px-3 py-2"> <i class="bi bi-check-circle me-1"></i> Active </span>
+
+{% else %} <span class="badge bg-danger rounded-pill px-3 py-2"> <i class="bi bi-x-circle me-1"></i> Inactive </span>
+
+
+
+
+
+{% endif %} <span class="badge bg-light text-dark rounded-pill px-3 py-2 border">ID: {{ employee.employee_id }}</span>
+{% if employee.is_face_enrolled %}
+<span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 border border-success">
+    <i class="bi bi-person-check-fill me-1"></i> Face Enrolled
+</span>
+{% else %}
+<span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2 border border-warning">
+    <i class="bi bi-person-x me-1"></i> Face Pending
+</span>
+{% endif %}
+</div> <div class="border-top pt-4"> <div class="row g-0"> <div class="col-6 border-end"> <label class="small text-muted text-uppercase fw-bold d-block">Joining Date</label> <div class="fw-bold">{{ employee.date_joined|format_date }}</div> </div> <div class="col-6"> <label class="small text-muted text-uppercase fw-bold d-block">Last Login</label> <div class="fw-bold">{{ employee.last_login|format_datetime|default:"Never" }}</div> </div> </div> </div> </div>
+
+{% if is_admin %} <div class="mt-4"> <label class="small text-muted text-uppercase fw-bold mb-2">Management Actions</label> <div class="d-grid gap-2">
+<a href="{% url 'enroll_face' pk=employee.pk %}" class="btn btn-outline-primary">
+    <i class="bi bi-person-bounding-box me-2"></i>
+    {% if employee.is_face_enrolled %}Re-Enroll Face{% else %}Enroll Face Profile{% endif %}
+</a>
+<a href="{% url 'reset_password' pk=employee.pk %}" class="btn btn-outline-warning" onclick="return confirm('Reset password to worker123?')"> <i class="bi bi-key me-2"></i> Reset Access </a> <a href="{% url 'toggle_employee_status' pk=employee.pk %}" class="btn 
+{% if employee.is_active %}btn-outline-danger
+{% else %}btn-success
+{% endif %}"> <i class="bi bi-power me-2"></i>
+
+{% if employee.is_active %}Deactivate Profile
+{% else %}Activate Profile
+{% endif %} </a> </div> </div>
+
+
+
+
+
+{% endif %} </div> <div class="col-lg-8"> <!-- Personal Details --> <div class="card border-0 shadow-sm mb-4"> <div class="card-header bg-white py-3"> <h5 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i> Detailed Information </h5> </div> <div class="card-body"> <div class="row g-4"> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Work Email</label> <div class="fw-bold">{{ employee.email|default:"Not Provided" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Mobile Number</label> <div class="fw-bold">{{ employee.mobile|default:"Not Provided" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Assigned Project Site</label> <div class="fw-bold">
+
+{% if employee.assigned_site %} <i class="bi bi-geo-alt-fill text-primary me-1"></i> {{ employee.assigned_site.name }} 
+{% else %} <span class="text-muted">Unassigned</span>
+
+{% endif %} </div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Monthly Salary</label> <div class="fw-bold">
+{% if employee.salary %}{{ employee.salary|to_inr }}
+{% else %}-
+{% endif %}
+</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Government ID</label> <div class="fw-bold">{{ employee.government_id|default:"-" }}</div> </div> </div> <div class="col-md-6"> <div class="p-3 bg-light rounded-3"> <label class="small text-muted text-uppercase fw-bold d-block mb-1">Username (Login)</label> <div class="fw-bold">{{ employee.username }}</div> </div> </div> </div> </div> </div> <!-- Profile Timeline/Activity Header --> <div class="card border-0 shadow-sm"> <div class="card-header bg-white py-3"> <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i> Profile Log</h5> </div> <div class="card-body"> <div class="d-flex align-items-center"> <div class="bg-light p-3 rounded-pill me-3"> <i class="bi bi-arrow-repeat text-muted"></i> </div> <div> <p class="mb-0 small text-muted text-uppercase fw-bold">Last Updated</p> <h6 class="mb-0">{{ employee.updated_at|format_datetime }}</h6>
                         </div>
                     </div>
                 </div>

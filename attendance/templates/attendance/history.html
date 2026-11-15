@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
 
-{% block title %}Attendance History{% endblock %}
+{% block title %}Attendance{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Attendance History</h1>
+    <h1 class="h2">Attendance</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <!-- Check-in button removed as per requirement -->
+        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#checkInModal">
+            <i class="bi bi-camera-video-fill me-1"></i> Mark Attendance
+        </button>
     </div>
 </div>
 
@@ -76,68 +78,152 @@
     {% include 'attendance/attendance_table_partial.html' %}
 </div>
 
-<!-- Attendance Check-in Modal -->
-<div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="checkInModalLabel">
-                    <i class="bi bi-clock-fill"></i> Daily Check-In
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                {% if user.assigned_site %}
-                <div class="mb-4">
-                    <span
-                        class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle"
-                        style="width: 80px; height: 80px;">
-                        <i class="bi bi-geo-alt text-primary" style="font-size: 2.5rem;"></i>
-                    </span>
+<!-- Attendance Check-in Modal with Live Face & Location Verification -->
+<div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-person-bounding-box fs-4"></i>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold" id="checkInModalLabel">Daily Attendance Check-In</h5>
+                        <small class="text-white-50">Face Recognition & GPS Geofenced Verification</small>
+                    </div>
                 </div>
-
-                <h5 class="fw-bold mb-1">Good Morning, {{ user.first_name }}!</h5>
-                <p class="text-muted mb-4">Please verify your location to mark attendance.</p>
-
-                <div class="card bg-light border-0 mb-4">
-                    <div class="card-body py-2">
-                        <p class="mb-0 small text-uppercase text-muted fw-bold">Assigned Site</p>
-                        <h5 class="text-primary fw-bold mb-0">{{ user.assigned_site.name }}</h5>
-                        <small class="text-muted">{{ user.assigned_site.latitude }}, {{user.assigned_site.longitude}}</small>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                {% if active_site %}
+                {% with site=active_site %}
+                <!-- Site & Profile Badges -->
+                <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-2 mb-3">
+                    <div class="text-start">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Assigned Project Site</small>
+                        <span class="fw-bold text-dark"><i class="bi bi-building text-primary me-1"></i> {{ site.name }}</span>
+                    </div>
+                    <div class="text-end">
+                        {% if user.is_face_enrolled %}
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success" id="enrollBadge">
+                            <i class="bi bi-shield-check me-1"></i> Face Enrolled
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning" id="enrollBadge">
+                            <i class="bi bi-shield-exclamation me-1"></i> Face Pending
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
 
-                <form action="{% url 'attendance:mark_attendance' %}" method="post" id="attendanceForm">
+                <!-- Video / Camera Container -->
+                <div class="position-relative mx-auto mb-3 overflow-hidden shadow-sm" style="width: 380px; max-width: 100%; height: 300px; border-radius: 16px; background-color: #0f172a;">
+                    <video id="modalWebcam" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                    <canvas id="modalCanvas" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none; transform: scaleX(-1);"></canvas>
+
+                    <!-- Face Guideline Oval -->
+                    <div id="modalGuideOval" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-pill"
+                        style="width: 170px; height: 220px; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45); pointer-events: none; transition: border-color 0.3s ease;">
+                    </div>
+
+                    <!-- Detection status overlay badge -->
+                    <div id="modalFaceLiveTag" class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small">
+                        Initializing Camera & AI...
+                    </div>
+                </div>
+
+                <!-- Camera Controls & Flip Option -->
+                <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                    <button type="button" id="modalFlipCamBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 shadow-sm">
+                        <i class="bi bi-arrow-repeat me-1"></i> <span id="modalFlipBtnText">Flip Camera (Front / Rear)</span>
+                    </button>
+                    <small class="text-muted"><i class="bi bi-lightbulb me-1"></i> Center face in oval</small>
+                </div>
+
+                <!-- Dual Status Verification Row (GPS & Face) -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div id="modalGpsStatusCard" class="p-2 border rounded bg-light text-secondary text-center small">
+                            <i class="bi bi-geo-alt me-1" id="modalGpsIcon"></i>
+                            <span id="modalGpsStatusText">Detecting Location...</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div id="modalFaceStatusCard" class="p-2 border rounded bg-light text-secondary text-center small">
+                            <i class="bi bi-person-bounding-box me-1" id="modalFaceIcon"></i>
+                            <span id="modalFaceStatusText">Scanning Face...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback Alert Banner -->
+                <div id="modalFeedbackBanner" class="alert alert-info py-2 mb-3 small d-none"></div>
+
+                <!-- Dev Mode Simulate GPS Button -->
+                <div id="modalDevGpsPrompt" class="alert alert-light border py-2 mb-3 small d-none text-start">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-laptop text-info me-1"></i>
+                            <span>Outside site radius during testing?</span>
+                        </div>
+                        <button type="button" id="modalMockGpsBtn" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-geo-fill"></i> Simulate On-Site
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1-Click Face Registration for Un-enrolled Users -->
+                <div id="modalQuickEnrollSection" class="card bg-warning bg-opacity-10 border border-warning p-3 mb-3 text-start small {% if user.is_face_enrolled %}d-none{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="fw-bold mb-0 text-warning-emphasis">
+                            <i class="bi bi-person-plus-fill me-1"></i> Register Face Profile
+                        </h6>
+                        <span class="badge bg-warning text-dark">Required Once</span>
+                    </div>
+                    <p class="text-muted mb-2 small">Align your face in the oval above and save your biometric profile in 1 click.</p>
+                    <button type="button" id="modalQuickEnrollBtn" class="btn btn-warning w-100 py-2 fw-bold" disabled>
+                        <i class="bi bi-camera-fill me-1"></i> Register My Face Now
+                    </button>
+                </div>
+
+                <!-- Attendance Submit Form -->
+                <form action="{% url 'attendance:attendance_list' %}" method="post" id="attendanceForm">
                     {% csrf_token %}
                     <input type="hidden" name="latitude" id="latitude">
                     <input type="hidden" name="longitude" id="longitude">
+                    <input type="hidden" name="face_embedding" id="faceEmbedding">
+                    <input type="hidden" name="request_override" id="requestOverride" value="false">
 
-                    <div id="locationStatus" class="alert alert-info py-2 mb-3 small">
-                        <div class="d-flex align-items-center justify-content-center gap-2">
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span>Detecting location...</span>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-2" id="submitBtn" disabled>
-                        <i class="bi bi-check-circle-fill me-2"></i> Confirm Check-In
+                    <button type="submit" class="btn btn-secondary btn-lg w-100 py-3 fw-bold" id="submitBtn" disabled>
+                        <i class="bi bi-camera me-1"></i> <span id="submitBtnText">Align Face in Oval & Check GPS...</span>
                     </button>
                 </form>
+
+                <!-- Supervisor Override Request -->
+                <div id="modalOverrideSection" class="mt-3 d-none">
+                    <div class="alert alert-warning py-2 mb-2 small text-start">
+                        <i class="bi bi-shield-exclamation text-danger me-1"></i>
+                        Having camera or lighting issues? You can request supervisor manual review.
+                    </div>
+                    <button type="button" id="modalOverrideBtn" class="btn btn-outline-warning w-100 py-2">
+                        <i class="bi bi-send-exclamation me-1"></i> Request Supervisor Override Check-in
+                    </button>
+                </div>
+                {% endwith %}
+
                 {% else %}
                 <div class="py-4">
                     <i class="bi bi-exclamation-triangle text-warning display-1"></i>
-                    <h5 class="mt-3">Not Assigned</h5>
-                    <p class="text-muted">You are not assigned to any project site. Please contact your supervisor.</p>
+                    <h5 class="mt-3 text-warning">Not Assigned</h5>
+                    <p class="text-muted">You are not assigned to any project site. Please contact your supervisor or administrator.</p>
                 </div>
                 {% endif %}
             </div>
-            {% if user.assigned_site %}
-            <div class="modal-footer justify-content-center">
+            {% if active_site %}
+            <div class="modal-footer justify-content-between py-2 bg-light">
                 <small class="text-muted">
                     <i class="bi bi-info-circle me-1"></i>
-                    You must be within {{ user.assigned_site.site_radius }}m of the site.
+                    Site Geofence Radius: {{ active_site.site_radius|default:500 }}m
                 </small>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
             {% endif %}
         </div>
@@ -147,6 +233,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Load vladmandic/face-api from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+
 <script>
     // Include the filtering logic
     function fetchPage(pageNumber = 1) {
@@ -178,31 +267,67 @@
     function applyFilters() { fetchPage(1); }
     function resetFilters() { document.getElementById('attendanceFilterForm').reset(); applyFilters(); }
 
-    // Auto-Show Check-In Modal Logic
+    // Biometric & Location Check-in Modal Lifecycle
     document.addEventListener("DOMContentLoaded", function () {
+        const modalEl = document.getElementById('checkInModal');
+        if (!modalEl) return;
+        const checkInModal = new bootstrap.Modal(modalEl);
+
         const attendanceMarked = "{{ attendance_marked|yesno:'true,false' }}" === "true";
-        const hasAssignedSite = "{{ user.assigned_site|yesno:'true,false' }}" === "true";
+        const hasSite = {% if active_site %}true{% else %}false{% endif %};
         const isBasicOrElevated = "{{ user.role }}" === "BASIC" || "{{ user.role }}" === "ELEVATED";
 
-        if (!attendanceMarked && isBasicOrElevated && hasAssignedSite) {
-            const myModal = new bootstrap.Modal(document.getElementById('checkInModal'));
-            myModal.show();
-
-            // Trigger location check
-            initLocationCheck();
+        // Auto-show modal if not marked today for assigned employees
+        if (!attendanceMarked && hasSite && isBasicOrElevated) {
+            checkInModal.show();
         }
-    });
 
-    function initLocationCheck() {
-        const statusDiv = document.getElementById("locationStatus");
+        // Biometric & Camera Variables
+        let isFaceEnrolled = {{ user.is_face_enrolled|yesno:"true,false" }};
+        const video = document.getElementById("modalWebcam");
+        const canvas = document.getElementById("modalCanvas");
+        const guideOval = document.getElementById("modalGuideOval");
+        const faceLiveTag = document.getElementById("modalFaceLiveTag");
+        const flipCamBtn = document.getElementById("modalFlipCamBtn");
+        const flipBtnText = document.getElementById("modalFlipBtnText");
+
+        const gpsStatusCard = document.getElementById("modalGpsStatusCard");
+        const gpsIcon = document.getElementById("modalGpsIcon");
+        const gpsStatusText = document.getElementById("modalGpsStatusText");
+
+        const faceStatusCard = document.getElementById("modalFaceStatusCard");
+        const faceIcon = document.getElementById("modalFaceIcon");
+        const faceStatusText = document.getElementById("modalFaceStatusText");
+
+        const feedbackBanner = document.getElementById("modalFeedbackBanner");
+        const devGpsPrompt = document.getElementById("modalDevGpsPrompt");
+        const mockGpsBtn = document.getElementById("modalMockGpsBtn");
+
+        const quickEnrollSection = document.getElementById("modalQuickEnrollSection");
+        const quickEnrollBtn = document.getElementById("modalQuickEnrollBtn");
+
+        const form = document.getElementById("attendanceForm");
         const submitBtn = document.getElementById("submitBtn");
+        const submitBtnText = document.getElementById("submitBtnText");
         const latInput = document.getElementById("latitude");
         const lonInput = document.getElementById("longitude");
+        const faceInput = document.getElementById("faceEmbedding");
+        const overrideInput = document.getElementById("requestOverride");
+        const overrideBtn = document.getElementById("modalOverrideBtn");
+        const overrideSection = document.getElementById("modalOverrideSection");
 
-        // Site details
-        const siteLat = parseFloat("{{ user.assigned_site.latitude|default:0 }}");
-        const siteLon = parseFloat("{{ user.assigned_site.longitude|default:0 }}");
-        const siteRad = parseInt("{{ user.assigned_site.site_radius|default:500 }}");
+        const siteLat = parseFloat("{{ active_site.latitude|default:0 }}");
+        const siteLon = parseFloat("{{ active_site.longitude|default:0 }}");
+        const siteRad = parseInt("{{ active_site.site_radius|default:500 }}");
+
+        let currentFacingMode = "user";
+        let gpsVerified = false;
+        let faceDetected = false;
+        let currentDescriptor = null;
+        let failedAttempts = 0;
+        let videoStream = null;
+        let modelsLoaded = false;
+        let detectInterval = null;
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; // Earth's radius in km
@@ -215,54 +340,394 @@
             return R * c * 1000;
         }
 
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
+        function updateSubmitState() {
+            if (!submitBtn || !submitBtnText) return;
 
-                    latInput.value = userLat;
-                    lonInput.value = userLon;
+            if (!gpsVerified) {
+                submitBtn.disabled = true;
+                submitBtn.className = "btn btn-secondary btn-lg w-100 py-3 fw-bold";
+                submitBtnText.innerText = "Waiting for Location Verification...";
+                return;
+            }
 
-                    const distance = calculateDistance(userLat, userLon, siteLat, siteLon);
-                    const distRound = Math.round(distance);
-
-                    if (distance <= siteRad) {
-                        statusDiv.className = "alert alert-success py-2 mb-3 small";
-                        statusDiv.innerHTML = `
-                            <i class="bi bi-geo-alt-fill text-success"></i> 
-                            <strong>Verified!</strong> ${distRound}m from site.
-                        `;
-                        submitBtn.disabled = false;
-                        submitBtn.classList.remove('btn-secondary');
-                        submitBtn.classList.add('btn-primary');
-                    } else {
-                        statusDiv.className = "alert alert-danger py-2 mb-3 small";
-                        statusDiv.innerHTML = `
-                            <i class="bi bi-geo-alt-fill text-danger"></i> 
-                            <strong>Too far!</strong> ${distRound}m away (max ${siteRad}m).
-                        `;
-                        submitBtn.disabled = true;
-                        submitBtn.classList.remove('btn-primary');
-                        submitBtn.classList.add('btn-secondary');
-                    }
-                },
-                function (error) {
-                    let msg = "Error getting location.";
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED: msg = "Location permission denied."; break;
-                        case error.POSITION_UNAVAILABLE: msg = "Location unavailable."; break;
-                        case error.TIMEOUT: msg = "Location request timed out."; break;
-                    }
-                    statusDiv.className = "alert alert-danger py-2 mb-3 small";
-                    statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> ${msg}`;
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
-            statusDiv.className = "alert alert-danger py-2 mb-3 small";
-            statusDiv.innerHTML = "Geolocation not supported.";
+            if (isFaceEnrolled) {
+                if (!faceDetected) {
+                    submitBtn.disabled = true;
+                    submitBtn.className = "btn btn-secondary btn-lg w-100 py-3 fw-bold";
+                    submitBtnText.innerText = "Align Face in Oval...";
+                    return;
+                }
+                submitBtn.disabled = false;
+                submitBtn.className = "btn btn-success btn-lg w-100 py-3 fw-bold";
+                submitBtnText.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Confirm Check-In (Face & GPS)';
+            } else {
+                // Not enrolled yet
+                submitBtn.disabled = false;
+                submitBtn.className = "btn btn-outline-primary btn-lg w-100 py-3 fw-bold";
+                submitBtnText.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> Check-in via GPS (Face Pending)';
+            }
         }
-    }
+
+        function initLocationCheck() {
+            if (!gpsStatusCard) return;
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        const userLat = position.coords.latitude;
+                        const userLon = position.coords.longitude;
+                        if (latInput) latInput.value = userLat;
+                        if (lonInput) lonInput.value = userLon;
+
+                        const dist = Math.round(calculateDistance(userLat, userLon, siteLat, siteLon));
+
+                        if (dist <= siteRad) {
+                            gpsVerified = true;
+                            gpsStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+                            if (gpsIcon) gpsIcon.className = "bi bi-check-circle-fill text-success me-1";
+                            if (gpsStatusText) gpsStatusText.innerText = `GPS Verified (${dist}m)`;
+                        } else {
+                            gpsVerified = false;
+                            gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
+                            if (gpsIcon) gpsIcon.className = "bi bi-x-circle-fill text-danger me-1";
+                            if (gpsStatusText) gpsStatusText.innerText = `Too Far (${dist}m > ${siteRad}m)`;
+                            if (devGpsPrompt) devGpsPrompt.classList.remove("d-none");
+                        }
+                        updateSubmitState();
+                    },
+                    function (error) {
+                        gpsVerified = false;
+                        gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
+                        if (gpsIcon) gpsIcon.className = "bi bi-x-circle text-danger me-1";
+                        if (gpsStatusText) gpsStatusText.innerText = "GPS Blocked";
+                        if (devGpsPrompt) devGpsPrompt.classList.remove("d-none");
+                        updateSubmitState();
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                if (gpsStatusText) gpsStatusText.innerText = "GPS Not Supported";
+                if (devGpsPrompt) devGpsPrompt.classList.remove("d-none");
+            }
+        }
+
+        if (mockGpsBtn) {
+            mockGpsBtn.addEventListener("click", function () {
+                if (latInput) latInput.value = siteLat;
+                if (lonInput) lonInput.value = siteLon;
+                gpsVerified = true;
+                gpsStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+                if (gpsIcon) gpsIcon.className = "bi bi-check-circle-fill text-success me-1";
+                if (gpsStatusText) gpsStatusText.innerText = "GPS Simulated (On-Site)";
+                if (devGpsPrompt) devGpsPrompt.classList.add("d-none");
+                updateSubmitState();
+            });
+        }
+
+        async function startCamera(facingMode = "user") {
+            if (!video) return;
+            currentFacingMode = facingMode;
+            const isFront = (facingMode === "user");
+
+            video.style.transform = isFront ? "scaleX(-1)" : "scaleX(1)";
+            if (canvas) canvas.style.transform = isFront ? "scaleX(-1)" : "scaleX(1)";
+
+            if (flipBtnText) {
+                flipBtnText.innerText = isFront ? "Flip to Rear Camera" : "Flip to Front Camera";
+            }
+
+            if (videoStream) {
+                videoStream.getTracks().forEach(t => t.stop());
+                videoStream = null;
+            }
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: facingMode } },
+                    audio: false
+                });
+                video.srcObject = videoStream;
+                try { await video.play(); } catch(pErr) {}
+                startDetectionLoop();
+            } catch (err) {
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    video.srcObject = videoStream;
+                    try { await video.play(); } catch(pErr) {}
+                    startDetectionLoop();
+                } catch (fallbackErr) {
+                    if (faceLiveTag) faceLiveTag.innerText = "Camera Permission Denied";
+                    if (feedbackBanner) {
+                        feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+                        feedbackBanner.innerText = "Camera access denied. Please grant camera permissions.";
+                        feedbackBanner.classList.remove("d-none");
+                    }
+                    if (overrideSection) overrideSection.classList.remove("d-none");
+                    console.error("Camera error:", fallbackErr);
+                }
+            }
+        }
+
+        if (flipCamBtn) {
+            flipCamBtn.addEventListener("click", async () => {
+                flipCamBtn.disabled = true;
+                const nextMode = (currentFacingMode === "user") ? "environment" : "user";
+                await startCamera(nextMode);
+                flipCamBtn.disabled = false;
+            });
+        }
+
+        function startDetectionLoop() {
+            if (!modelsLoaded || !video) return;
+            if (detectInterval) clearInterval(detectInterval);
+
+            detectInterval = setInterval(async () => {
+                if (video.paused || video.ended || video.readyState < 2) return;
+
+                const vw = video.videoWidth || 380;
+                const vh = video.videoHeight || 300;
+                if (canvas && (canvas.width !== vw || canvas.height !== vh)) {
+                    canvas.width = vw;
+                    canvas.height = vh;
+                    faceapi.matchDimensions(canvas, { width: vw, height: vh });
+                }
+
+                try {
+                    const detection = await faceapi
+                        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.35 }))
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+
+                    if (canvas) {
+                        const ctx = canvas.getContext("2d");
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+
+                    if (detection) {
+                        if (guideOval) guideOval.style.borderColor = "#22c55e";
+                        currentDescriptor = Array.from(detection.descriptor);
+                        if (faceInput) faceInput.value = JSON.stringify(currentDescriptor);
+                        faceDetected = true;
+
+                        if (faceLiveTag) {
+                            faceLiveTag.innerText = "Face Detected & Aligned";
+                            faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-success text-white px-3 py-1 small";
+                        }
+
+                        if (faceStatusCard) {
+                            faceStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+                            if (faceIcon) faceIcon.className = "bi bi-check-circle-fill text-success me-1";
+                            if (faceStatusText) faceStatusText.innerText = "Face Detected";
+                        }
+
+                        if (quickEnrollBtn) quickEnrollBtn.disabled = false;
+                    } else {
+                        if (guideOval) guideOval.style.borderColor = "#4f46e5";
+                        faceDetected = false;
+
+                        if (faceLiveTag) {
+                            faceLiveTag.innerText = "Position Face Inside Oval";
+                            faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small";
+                        }
+
+                        if (faceStatusCard) {
+                            faceStatusCard.className = "p-2 border rounded bg-light text-secondary text-center small";
+                            if (faceIcon) faceIcon.className = "bi bi-person-bounding-box text-warning me-1";
+                            if (faceStatusText) faceStatusText.innerText = "Scanning...";
+                        }
+
+                        if (quickEnrollBtn) quickEnrollBtn.disabled = true;
+                    }
+                    updateSubmitState();
+                } catch (detErr) {
+                    console.error("Detection cycle error:", detErr);
+                }
+            }, 150);
+        }
+
+        async function loadModels() {
+            if (modelsLoaded) return;
+            const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/";
+            try {
+                if (faceLiveTag) faceLiveTag.innerText = "Loading AI Face Models (~6MB)...";
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                modelsLoaded = true;
+                if (faceLiveTag) faceLiveTag.innerText = "AI Ready - Position Face";
+                startDetectionLoop();
+            } catch (err) {
+                if (faceLiveTag) faceLiveTag.innerText = "AI Models Failed to Load";
+                console.error("Model error:", err);
+            }
+        }
+
+        // 1-Click Face Enrollment from within the Modal
+        if (quickEnrollBtn) {
+            quickEnrollBtn.addEventListener("click", async function () {
+                if (!currentDescriptor) {
+                    alert("Please look into the camera until your face is detected in the oval.");
+                    return;
+                }
+
+                quickEnrollBtn.disabled = true;
+                quickEnrollBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registering Face Profile...';
+
+                try {
+                    let photoDataUrl = null;
+                    try {
+                        if (video && video.videoWidth) {
+                            const snapCanvas = document.createElement('canvas');
+                            snapCanvas.width = video.videoWidth || 380;
+                            snapCanvas.height = video.videoHeight || 320;
+                            const snapCtx = snapCanvas.getContext('2d');
+                            snapCtx.drawImage(video, 0, 0, snapCanvas.width, snapCanvas.height);
+                            photoDataUrl = snapCanvas.toDataURL('image/jpeg', 0.4);
+                        }
+                    } catch (snapErr) {
+                        console.warn("Snapshot capture failed:", snapErr);
+                    }
+
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    const response = await fetch("{% url 'enroll_face' pk=user.pk %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": csrfToken
+                        },
+                        body: JSON.stringify({
+                            samples: [currentDescriptor],
+                            photo: photoDataUrl
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        isFaceEnrolled = true;
+                        const badge = document.getElementById("enrollBadge");
+                        if (badge) {
+                            badge.className = "badge bg-success bg-opacity-10 text-success border border-success";
+                            badge.innerHTML = '<i class="bi bi-shield-check me-1"></i> Face Enrolled';
+                        }
+                        if (quickEnrollSection) quickEnrollSection.classList.add("d-none");
+
+                        if (feedbackBanner) {
+                            feedbackBanner.className = "alert alert-success py-2 mb-3 small";
+                            feedbackBanner.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> <strong>Face registered successfully!</strong> You can now confirm your check-in.`;
+                            feedbackBanner.classList.remove("d-none");
+                        }
+
+                        updateSubmitState();
+                    } else {
+                        throw new Error(result.message || "Enrollment failed.");
+                    }
+                } catch (err) {
+                    if (feedbackBanner) {
+                        feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+                        feedbackBanner.innerText = `Enrollment error: ${err.message}`;
+                        feedbackBanner.classList.remove("d-none");
+                    }
+                    quickEnrollBtn.disabled = false;
+                    quickEnrollBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i> Retry Registration';
+                }
+            });
+        }
+
+        // Supervisor Override Button
+        if (overrideBtn) {
+            overrideBtn.addEventListener("click", function () {
+                if (overrideInput) overrideInput.value = "true";
+                if (feedbackBanner) {
+                    feedbackBanner.className = "alert alert-warning py-2 mb-3 small";
+                    feedbackBanner.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Supervisor override mode enabled. Click Confirm to check in pending supervisor review.';
+                    feedbackBanner.classList.remove("d-none");
+                }
+                submitBtn.disabled = false;
+                submitBtn.className = "btn btn-warning btn-lg w-100 py-3 fw-bold";
+                submitBtnText.innerHTML = '<i class="bi bi-shield-exclamation me-1"></i> Submit with Supervisor Override';
+            });
+        }
+
+        // AJAX Attendance Submission
+        if (form) {
+            form.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                submitBtn.disabled = true;
+                submitBtnText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying & Saving...';
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: "POST",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest"
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        if (feedbackBanner) {
+                            feedbackBanner.className = "alert alert-success py-3 mb-3 fw-bold";
+                            feedbackBanner.innerHTML = `<i class="bi bi-check-circle-fill fs-5 me-2"></i> ${data.message}`;
+                            feedbackBanner.classList.remove("d-none");
+                        }
+                        submitBtn.className = "btn btn-success btn-lg w-100 py-3 fw-bold";
+                        submitBtnText.innerHTML = '<i class="bi bi-check-lg me-1"></i> Checked In!';
+
+                        setTimeout(() => {
+                            checkInModal.hide();
+                            fetchPage(1);
+                        }, 1200);
+                    } else {
+                        failedAttempts++;
+                        if (feedbackBanner) {
+                            feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+                            feedbackBanner.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> ${data.message || "Verification failed."}`;
+                            feedbackBanner.classList.remove("d-none");
+                        }
+
+                        if (failedAttempts >= 2 && overrideSection) {
+                            overrideSection.classList.remove("d-none");
+                        }
+
+                        submitBtn.disabled = false;
+                        updateSubmitState();
+                    }
+                } catch (err) {
+                    // Fallback to normal form submit if fetch fails
+                    form.submit();
+                }
+            });
+        }
+
+        // Modal Lifecycle Event Handlers
+        modalEl.addEventListener('shown.bs.modal', async function () {
+            initLocationCheck();
+            await startCamera(currentFacingMode);
+            await loadModels();
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (videoStream) {
+                videoStream.getTracks().forEach(t => t.stop());
+                videoStream = null;
+            }
+            if (detectInterval) {
+                clearInterval(detectInterval);
+                detectInterval = null;
+            }
+            if (canvas) {
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            if (feedbackBanner) feedbackBanner.classList.add("d-none");
+        });
+    });
 </script>
 {% endblock %}

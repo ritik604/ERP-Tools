@@ -14,7 +14,13 @@
         <tbody id="employeeTableBody">
             {% for emp in employees %}
             <tr class="employee-row"
-                data-name="{{ emp.get_full_name|default:emp.username|lower }} {{ emp.employee_id|lower }} {{ emp.designation|default:''|lower }}" data-role="{{ emp.role }}" data-site="{{ emp.assigned_site.id|default:'' }}" data-status="{{ emp.is_active|yesno:'active,inactive' }}"> <td class="fw-medium text-dark">{{ emp.employee_id }}</td> <td> {{ emp.get_full_name|default:emp.username }} {% if emp.designation %} <div class="small text-muted">{{ emp.designation }}</div> {% endif %} </td> <td>{{ emp.get_role_display }}</td> <td>{{ emp.assigned_site.name|default:"Unassigned" }}</td> <td> {% load currency_tags %} {% if emp.salary %}{{ emp.salary|to_inr }}{% else %}-{% endif %}
+                data-name="{{ emp.get_full_name|default:emp.username|lower }} {{ emp.employee_id|lower }} {{ emp.designation|default:''|lower }}" data-role="{{ emp.role }}" data-site="{{ emp.assigned_site.id|default:'' }}" data-status="{{ emp.is_active|yesno:'active,inactive' }}"> <td class="fw-medium text-dark">{{ emp.employee_id }}</td> <td> {{ emp.get_full_name|default:emp.username }}
+{% if emp.designation %} <div class="small text-muted">{{ emp.designation }}</div>
+{% endif %} </td> <td>{{ emp.get_role_display }}</td> <td>{{ emp.assigned_site.name|default:"Unassigned" }}</td> <td>
+{% load currency_tags %} 
+{% if emp.salary %}{{ emp.salary|to_inr }}
+{% else %}-
+{% endif %}
                 </td>
                 <td>
                     {% if emp.is_active %}
@@ -27,6 +33,9 @@
                     <div class="d-flex gap-2">
                         <a href="{% url 'employee_detail' pk=emp.pk %}" class="btn btn-sm btn-outline-secondary">
                             View/Update
+                        </a>
+                        <a href="{% url 'enroll_face' pk=emp.pk %}" class="btn btn-sm {% if emp.is_face_enrolled %}btn-outline-success{% else %}btn-outline-danger{% endif %}" title="{% if emp.is_face_enrolled %}Re-Enroll Face{% else %}Enroll Face Profile{% endif %}">
+                            <i class="bi bi-person-bounding-box"></i>
                         </a>
                     </div>
                 </td>

@@ -82,7 +82,7 @@ class Milestone(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.name} - {self.project.name}"
+        return f"{self.project.name} - {self.name}"
 
 class MilestoneImage(models.Model):
     milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='images')

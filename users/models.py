@@ -27,6 +27,12 @@ class CustomUser(AbstractUser):
     date_joined = models.DateField(default=get_ist_date)
     updated_at = models.DateTimeField(default=get_ist_now)
     assigned_site = models.ForeignKey('projects.ProjectSite', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_workers')
+    
+    # Facial Recognition Fields
+    face_embedding = models.JSONField(null=True, blank=True, help_text="128-D facial vector representation")
+    is_face_enrolled = models.BooleanField(default=False, db_index=True)
+    face_enrolled_at = models.DateTimeField(null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
 
     class Meta:
         ordering = ['-date_joined']

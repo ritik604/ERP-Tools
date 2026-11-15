@@ -92,9 +92,30 @@ def project_detail(request, pk):
             
             # Handle multiple images
             files = request.FILES.getlist('images')
+            image_names = []
             for f in files:
-                MilestoneImage.objects.create(milestone=milestone, image=f)
+                new_img = MilestoneImage.objects.create(milestone=milestone, image=f)
+                image_names.append(new_img.image.name.split('/')[-1])
                 
+            # Update audit log with image names
+            if image_names:
+                from django.db import transaction
+                from audit.utils import update_audit_log_with_images
+                from audit.middleware import get_current_ip
+                
+                # Use on_commit to ensure the CREATE audit log (from signal) is committed first
+                transaction.on_commit(
+                    lambda: update_audit_log_with_images(
+                        module='Project - Milestone',
+                        model_name='Milestone',
+                        record_id=milestone.pk,
+                        image_names=image_names,
+                        user=request.user,
+                        ip_address=get_current_ip(),
+                        record_repr=f"{project.name} - {milestone.name}"[:255]
+                    )
+                )
+
             messages.success(request, "Milestone added successfully!")
             return redirect('projects:project_detail', pk=pk)
         else:
@@ -157,6 +178,60 @@ def project_update(request, pk):
         'project': project,
         'is_update': True
     })
+
+@login_required
+def milestone_create(request, pk):
+    """Create a new milestone for a project."""
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
+        messages.error(request, "Access Denied.")
+        return redirect('home')
+    
+    project = get_object_or_404(ProjectSite, pk=pk)
+    
+    if request.method == 'POST':
+        form = MilestoneForm(request.POST, request.FILES)
+        if form.is_valid():
+            milestone = form.save(commit=False)
+            milestone.project = project
+            milestone.save()
+            
+            # Handle multiple images
+            files = request.FILES.getlist('images')
+            image_names = []
+            for f in files:
+                new_img = MilestoneImage.objects.create(milestone=milestone, image=f)
+                image_names.append(new_img.image.name.split('/')[-1])
+
+            # Update audit log with image names
+            if image_names:
+                from django.db import transaction
+                from audit.utils import update_audit_log_with_images
+                from audit.middleware import get_current_ip
+                
+                # Use on_commit to ensure the CREATE audit log (from signal) is committed first
+                transaction.on_commit(
+                    lambda: update_audit_log_with_images(
+                        module='Project - Milestone',
+                        model_name='Milestone',
+                        record_id=milestone.pk,
+                        image_names=image_names,
+                        user=request.user,
+                        ip_address=get_current_ip(),
+                        record_repr=f"{project.name} - {milestone.name}"[:255]
+                    )
+                )
+            
+            messages.success(request, f"Milestone '{milestone.name}' created!")
+            return redirect('projects:project_detail', pk=pk)
+    else:
+        form = MilestoneForm()
+    
+    return render(request, 'projects/milestone_form.html', {
+        'project': project,
+        'form': form,
+        'title': 'Add New Milestone'
+    })
+
 
 @login_required
 def milestone_update(request, pk, milestone_id):
@@ -227,17 +302,17 @@ def milestone_update(request, pk, milestone_id):
                 
                 if existing_audit:
                     # Merge image changes into existing audit entry and update module
-                    existing_audit.module = 'Project-Milestone'
+                    existing_audit.module = 'Project - Milestone'
                     existing_audit.changes.update(image_changes)
                     existing_audit.save()
                 else:
                     # No recent audit entry found, create one
                     from audit.middleware import get_current_ip
                     AuditLog.objects.create(
-                        module='Project-Milestone',
+                        module='Project - Milestone',
                         model_name='Milestone',
                         record_id=str(milestone.pk),
-                        record_repr=f"{milestone.name} ({project.name})"[:255],
+                        record_repr=f"{project.name} - {milestone.name}"[:255],
                         action='UPDATE',
                         user=request.user,
                         changes=image_changes,
@@ -269,6 +344,27 @@ def milestone_image_delete(request, pk, milestone_id, image_id):
         messages.success(request, "Image deleted successfully!")
     
     return redirect('projects:milestone_update', pk=pk, milestone_id=milestone_id)
+
+@login_required
+def milestone_delete(request, pk, milestone_id):
+    """Delete a milestone."""
+    if request.user.role not in ['ADMIN', 'ELEVATED']:
+        messages.error(request, "Access Denied.")
+        return redirect('home')
+    
+    project = get_object_or_404(ProjectSite, pk=pk)
+    milestone = get_object_or_404(Milestone, pk=milestone_id, project=project)
+    
+    if request.method == 'POST':
+        milestone_name = milestone.name
+        milestone.delete()
+        messages.success(request, f'Milestone "{milestone_name}" deleted!')
+        return redirect('projects:project_detail', pk=pk)
+    
+    return render(request, 'projects/milestone_confirm_delete.html', {
+        'project': project,
+        'milestone': milestone
+    })
 
 @login_required
 def project_delete(request, pk):

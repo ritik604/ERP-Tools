@@ -1,90 +1,629 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load date_tags %}
 
 {% block title %}Mark Attendance{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-md-6">
-        <div class="card mt-3 mt-md-5 border-0 shadow-sm">
+<div class="row justify-content-center py-3">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-primary text-white py-3">
-                <h4 class="mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar-check"></i> Mark Attendance
-                </h4>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-camera-video-fill"></i> Attendance Check-In
+                    </h4>
+                    <span id="enrollBadge" class="badge {% if user.is_face_enrolled %}bg-white text-primary{% else %}bg-warning text-dark{% endif %}">
+                        {% if user.is_face_enrolled %}
+                        <i class="bi bi-shield-check me-1"></i> Face Enrolled
+                        {% else %}
+                        <i class="bi bi-exclamation-triangle me-1"></i> Face Pending
+                        {% endif %}
+                    </span>
+                </div>
             </div>
-            <div class="card-body text-center py-4">
-                {% if error %}
-                <div class="alert alert-danger">{{ error }}</div> {% endif %} {% if already_checked_in %} <div class="py-4"> <div class="mb-4"> <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i> </div> <h5 class="text-success mb-3">You're checked in!</h5> <p class="text-muted">You have already marked your attendance for today.</p> <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary btn-lg w-100 mt-3"> <i class="bi bi-clock-history"></i> View History </a> </div> {% elif user.assigned_site %} <div class="py-3"> <div class="mb-4"> <span class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 80px; height: 80px;"> <i class="bi bi-geo-alt text-primary" style="font-size: 2.5rem;"></i> </span> </div> <p class="lead mb-1">Assigned Site:</p> <h4 class="fw-bold text-primary mb-2">{{ user.assigned_site.name }}</h4> <p class="text-muted small mb-4"> <i class="bi bi-pin-map"></i> {{ user.assigned_site.latitude }}, {{ user.assigned_site.longitude }} </p> <form method="post" id="attendanceForm"> {% csrf_token %} <input type="hidden" name="latitude" id="latitude"> <input type="hidden" name="longitude" id="longitude"> <div id="locationStatus" class="alert alert-info py-3 mb-4"> <i class="bi bi-radar"></i> Detecting your location... </div> <button type="submit" class="btn btn-success btn-lg w-100 py-3" id="submitBtn" disabled> <i class="bi bi-check-circle-fill"></i> Confirm Check-In </button> </form> </div> {% else %} <div class="py-4"> <div class="mb-4"> <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i> </div> <h5 class="text-warning mb-3">Not Assigned</h5> <p class="text-muted">You are not assigned to any project site. Please contact your supervisor.</p> <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary btn-lg w-100 mt-3"> <i class="bi bi-house"></i> Back to Dashboard </a> </div> {% endif %} </div> </div> </div> </div> <script> document.addEventListener("DOMContentLoaded", function () { const statusDiv = document.getElementById("locationStatus"); const submitBtn = document.getElementById("submitBtn"); const latInput = document.getElementById("latitude"); const lonInput = document.getElementById("longitude"); // Site details from Django context const siteLat = parseFloat("{{ user.assigned_site.latitude|default:0 }}"); const siteLon = parseFloat("{{ user.assigned_site.longitude|default:0 }}"); const siteRad = parseInt("{{ user.assigned_site.site_radius|default:500 }}");
 
-        // Haversine formula to calculate distance between two coordinates
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Earth's radius in km
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c * 1000; // Return distance in meters
+            <div class="card-body p-4 text-center">
+                {% if error %}
+                <div class="alert alert-danger mb-3">{{ error }}</div>
+                {% endif %}
+
+                {% if already_checked_in %}
+                <!-- Already Checked In Screen -->
+                <div class="py-3">
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="text-success fw-bold mb-1">Checked In for Today!</h4>
+                    <p class="text-muted small mb-3">{{ message|default:"Your attendance has already been recorded for today." }}</p>
+                    <a href="{% url 'attendance:attendance_list' %}" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-table me-1"></i> Open Full History Table
+                    </a>
+                </div>
+
+                {% elif user.assigned_site %}
+                <!-- Active Check-In Screen -->
+                <div class="py-1">
+                    <!-- Site Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded-3">
+                        <div class="text-start">
+                            <small class="text-muted text-uppercase fw-bold d-block">Assigned Site</small>
+                            <span class="fw-bold text-primary">{{ user.assigned_site.name }}</span>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted text-uppercase fw-bold d-block">Target Radius</small>
+                            <span class="badge bg-secondary">{{ user.assigned_site.site_radius|default:500 }}m</span>
+                        </div>
+                    </div>
+
+                    <!-- Dual Verification Status -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div id="gpsStatusCard" class="p-2 border rounded bg-light text-center small">
+                                <i id="gpsIcon" class="bi bi-radar text-warning me-1"></i>
+                                <span id="gpsStatusText" class="fw-medium">Checking GPS...</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div id="faceStatusCard" class="p-2 border rounded bg-light text-center small">
+                                <i id="faceIcon" class="bi bi-person-bounding-box text-warning me-1"></i>
+                                <span id="faceStatusText" class="fw-medium">Starting Camera...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Control Bar (Prominent Flip Camera Button) -->
+                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                        <span class="small text-muted fw-bold text-uppercase">
+                            <i class="bi bi-camera me-1"></i> Camera Scanner
+                        </span>
+                        <button type="button" id="flipCamBtn" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-sm">
+                            <i class="bi bi-arrow-repeat me-1"></i> <span id="flipBtnText">Flip to Rear Camera</span>
+                        </button>
+                    </div>
+
+                    <!-- Live Scanner Frame -->
+                    <div class="position-relative mx-auto mb-3 overflow-hidden shadow-sm" style="width: 340px; max-width: 100%; height: 280px; border-radius: 18px; background-color: #0f172a;">
+                        <video id="webcam" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                        <canvas id="overlayCanvas" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none; transform: scaleX(-1);"></canvas>
+                        
+                        <!-- Face Guideline Oval -->
+                        <div id="guideOval" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-pill" 
+                             style="width: 170px; height: 215px; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45); pointer-events: none; transition: border-color 0.3s ease;">
+                        </div>
+
+                        <!-- Live Scanner Badge -->
+                        <div id="faceLiveTag" class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small">
+                            Loading AI Vision Model...
+                        </div>
+                    </div>
+
+                    <!-- Feedback Banner -->
+                    <div id="feedbackBanner" class="alert alert-info py-2 mb-3 small d-none"></div>
+
+                    <!-- Dev Mode Helper: Simulate Location if GPS is far away during local testing -->
+                    <div id="devGpsPrompt" class="alert alert-light border py-2 mb-3 small d-none text-start">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-laptop text-info me-1"></i>
+                                <span>Testing on PC? Your GPS is outside site radius.</span>
+                            </div>
+                            <button type="button" id="mockGpsBtn" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-geo-fill"></i> Simulate On-Site
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 1-Click Face Enrollment Prompt for Un-enrolled Users -->
+                    <div id="quickEnrollSection" class="card bg-warning bg-opacity-10 border border-warning p-3 mb-3 text-start small {% if user.is_face_enrolled %}d-none{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-warning-emphasis">
+                                <i class="bi bi-person-plus-fill me-1"></i> Register Face Profile
+                            </h6>
+                            <span class="badge bg-warning text-dark">Required Once</span>
+                        </div>
+                        <p class="text-muted mb-2">Position your face in the oval above and register your profile in 1 click.</p>
+                        <button type="button" id="quickEnrollBtn" class="btn btn-warning w-100 py-2 fw-bold" disabled>
+                            <i class="bi bi-camera-fill me-1"></i> Register My Face Now
+                        </button>
+                    </div>
+
+                    <!-- Attendance Submit Form -->
+                    <form method="post" id="attendanceForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                        <input type="hidden" name="face_embedding" id="faceEmbedding">
+                        <input type="hidden" name="request_override" id="requestOverride" value="false">
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold" id="submitBtn" disabled>
+                            <i class="bi bi-camera me-1"></i> <span id="submitBtnText">Align Face in Oval...</span>
+                        </button>
+                    </form>
+
+                    <!-- 3-Strike Override Fallback Button -->
+                    <div id="overrideSection" class="mt-3 d-none">
+                        <div class="alert alert-warning py-2 mb-2 small text-start">
+                            <i class="bi bi-shield-exclamation text-danger me-1"></i>
+                            Having camera or lighting issues? You can request supervisor manual review.
+                        </div>
+                        <button type="button" id="overrideBtn" class="btn btn-outline-warning w-100 py-2">
+                            <i class="bi bi-send-exclamation me-1"></i> Request Supervisor Override Check-in
+                        </button>
+                    </div>
+                </div>
+
+                {% else %}
+                <!-- Not Assigned to Site -->
+                <div class="py-4">
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="text-warning mb-3">Not Assigned to Any Site</h5>
+                    <p class="text-muted">You are not assigned to an active project site. Please contact your supervisor or administrator.</p>
+                    <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary btn-lg w-100 mt-3">
+                        <i class="bi bi-house me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Unified Recent Attendance History (Directly Visible) -->
+        {% if recent_attendance %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-clock-history text-primary me-2"></i> Your Recent Attendance
+                </h6>
+                <a href="{% url 'attendance:attendance_list' %}" class="small text-decoration-none">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Verification</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in recent_attendance %}
+                            <tr>
+                                <td class="fw-medium">{{ rec.date|format_date }}</td>
+                                <td>{{ rec.check_in_time|format_time|default:"-" }}</td>
+                                <td>
+                                    {% if rec.verification_mode == 'GPS_AND_FACE' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                                        <i class="bi bi-person-check-fill me-1"></i> Face + GPS
+                                    </span>
+                                    {% elif rec.verification_mode == 'SUPERVISOR_OVERRIDE' %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                                        <i class="bi bi-shield-exclamation me-1"></i> Override
+                                    </span>
+                                    {% elif rec.verified %}
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                                        <i class="bi bi-geo-alt me-1"></i> GPS Only
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">
+                                        <i class="bi bi-x-circle me-1"></i> Unverified
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if rec.status == 'PRESENT' %}
+                                    <span class="text-success fw-bold">Present</span>
+                                    {% elif rec.status == 'ABSENT' %}
+                                    <span class="text-danger fw-bold">Absent</span>
+                                    {% else %}
+                                    <span class="text-secondary fw-bold">{{ rec.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Load vladmandic/face-api from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+    let isFaceEnrolled = {{ user.is_face_enrolled|yesno:"true,false" }};
+    const form = document.getElementById("attendanceForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const submitBtnText = document.getElementById("submitBtnText");
+    const latInput = document.getElementById("latitude");
+    const lonInput = document.getElementById("longitude");
+    const faceInput = document.getElementById("faceEmbedding");
+    const overrideInput = document.getElementById("requestOverride");
+    const overrideBtn = document.getElementById("overrideBtn");
+    const overrideSection = document.getElementById("overrideSection");
+    const devGpsPrompt = document.getElementById("devGpsPrompt");
+    const mockGpsBtn = document.getElementById("mockGpsBtn");
+
+    const quickEnrollSection = document.getElementById("quickEnrollSection");
+    const quickEnrollBtn = document.getElementById("quickEnrollBtn");
+
+    const gpsStatusCard = document.getElementById("gpsStatusCard");
+    const gpsIcon = document.getElementById("gpsIcon");
+    const gpsStatusText = document.getElementById("gpsStatusText");
+
+    const faceStatusCard = document.getElementById("faceStatusCard");
+    const faceIcon = document.getElementById("faceIcon");
+    const faceStatusText = document.getElementById("faceStatusText");
+    const feedbackBanner = document.getElementById("feedbackBanner");
+
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("overlayCanvas");
+    const guideOval = document.getElementById("guideOval");
+    const faceLiveTag = document.getElementById("faceLiveTag");
+    const flipCamBtn = document.getElementById("flipCamBtn");
+    const flipBtnText = document.getElementById("flipBtnText");
+
+    const siteLat = parseFloat("{{ user.assigned_site.latitude|default:0 }}");
+    const siteLon = parseFloat("{{ user.assigned_site.longitude|default:0 }}");
+    const siteRad = parseInt("{{ user.assigned_site.site_radius|default:500 }}");
+
+    let currentFacingMode = "user"; // 'user' (front) or 'environment' (rear)
+    let gpsVerified = false;
+    let faceDetected = false;
+    let currentDescriptor = null;
+    let failedAttempts = 0;
+    let videoStream = null;
+    let modelsLoaded = false;
+    let detectInterval = null;
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c * 1000;
+    }
+
+    function updateSubmitState() {
+        if (!gpsVerified) {
+            submitBtn.disabled = true;
+            submitBtn.className = "btn btn-secondary btn-lg w-100 py-3 fw-bold";
+            submitBtnText.innerText = "Waiting for Location Verification...";
+            return;
         }
 
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
-
-                    latInput.value = userLat;
-                    lonInput.value = userLon;
-
-                    const distance = calculateDistance(userLat, userLon, siteLat, siteLon);
-                    const distRound = Math.round(distance);
-
-                    if (distance <= siteRad) {
-                        statusDiv.className = "alert alert-success py-3 mb-4";
-                        statusDiv.innerHTML = `
-                            <i class="bi bi-geo-alt-fill text-success"></i> 
-                            <strong>Location verified!</strong><br>
-                            <small>You are ${distRound}m from the site (within ${siteRad}m range)</small>
-                        `;
-                        submitBtn.disabled = false;
-                        submitBtn.className = "btn btn-success btn-lg w-100 py-3";
-                    } else {
-                        statusDiv.className = "alert alert-danger py-3 mb-4";
-                        statusDiv.innerHTML = `
-                            <i class="bi bi-geo-alt-fill text-danger"></i> 
-                            <strong>Too far from site!</strong><br>
-                            <small>You are ${distRound}m away. Target range: ${siteRad}m.</small>
-                        `;
-                        submitBtn.disabled = true;
-                        submitBtn.className = "btn btn-secondary btn-lg w-100 py-3";
-                        submitBtn.innerHTML = '<i class="bi bi-x-circle"></i> Too Far to Check-In';
-                    }
-                },
-                function (error) {
-                    let msg = "Error getting location.";
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            msg = "Location permission denied. Please enable location access.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            msg = "Location information is unavailable.";
-                            break;
-                        case error.TIMEOUT:
-                            msg = "The request to get user location timed out.";
-                            break;
-                        case error.UNKNOWN_ERROR:
-                            msg = "An unknown error occurred.";
-                            break;
-                    }
-                    statusDiv.className = "alert alert-danger py-3 mb-4";
-                    statusDiv.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${msg}`;
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
+        if (isFaceEnrolled) {
+            if (!faceDetected) {
+                submitBtn.disabled = true;
+                submitBtn.className = "btn btn-secondary btn-lg w-100 py-3 fw-bold";
+                submitBtnText.innerText = "Align Face in Oval...";
+                return;
+            }
+            submitBtn.disabled = false;
+            submitBtn.className = "btn btn-success btn-lg w-100 py-3 fw-bold";
+            submitBtnText.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Confirm Check-In (Face & GPS)';
         } else {
-            statusDiv.className = "alert alert-danger py-3 mb-4";
-            statusDiv.innerHTML = `<i class="bi bi-x-circle text-danger"></i> Geolocation not supported.`;
+            // Not enrolled
+            submitBtn.disabled = false;
+            submitBtn.className = "btn btn-outline-primary btn-lg w-100 py-3 fw-bold";
+            submitBtnText.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> Check-in via GPS (Face Pending)';
+        }
+    }
+
+    // 1. Geolocation Verification
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+                latInput.value = userLat;
+                lonInput.value = userLon;
+
+                const dist = Math.round(calculateDistance(userLat, userLon, siteLat, siteLon));
+
+                if (dist <= siteRad) {
+                    gpsVerified = true;
+                    gpsStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+                    gpsIcon.className = "bi bi-check-circle-fill text-success me-1";
+                    gpsStatusText.innerText = `GPS Verified (${dist}m)`;
+                } else {
+                    gpsVerified = false;
+                    gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
+                    gpsIcon.className = "bi bi-x-circle-fill text-danger me-1";
+                    gpsStatusText.innerText = `Too Far (${dist}m > ${siteRad}m)`;
+                    devGpsPrompt.classList.remove("d-none");
+                }
+                updateSubmitState();
+            },
+            function (error) {
+                gpsVerified = false;
+                gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
+                gpsIcon.className = "bi bi-x-circle text-danger me-1";
+                gpsStatusText.innerText = "GPS Blocked";
+                devGpsPrompt.classList.remove("d-none");
+                updateSubmitState();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    } else {
+        gpsStatusText.innerText = "GPS Not Supported";
+        devGpsPrompt.classList.remove("d-none");
+    }
+
+    // Dev mode Mock GPS Button
+    if (mockGpsBtn) {
+        mockGpsBtn.addEventListener("click", function () {
+            latInput.value = siteLat;
+            lonInput.value = siteLon;
+            gpsVerified = true;
+            gpsStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+            gpsIcon.className = "bi bi-check-circle-fill text-success me-1";
+            gpsStatusText.innerText = "GPS Simulated (On-Site)";
+            devGpsPrompt.classList.add("d-none");
+            updateSubmitState();
+        });
+    }
+
+    // 2. Camera Management with Flip Support
+    async function startCamera(facingMode = "user") {
+        currentFacingMode = facingMode;
+        const isFront = (facingMode === "user");
+
+        video.style.transform = isFront ? "scaleX(-1)" : "scaleX(1)";
+        canvas.style.transform = isFront ? "scaleX(-1)" : "scaleX(1)";
+
+        if (flipBtnText) {
+            flipBtnText.innerText = isFront ? "Flip to Rear Camera" : "Flip to Front Camera";
+        }
+
+        if (videoStream) {
+            videoStream.getTracks().forEach(t => t.stop());
+        }
+
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: facingMode } },
+                audio: false
+            });
+            video.srcObject = videoStream;
+            // Trigger detection once new stream is active
+            startDetectionLoop();
+        } catch (err) {
+            // Fallback to basic video constraint if ideal facingMode fails
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = videoStream;
+                startDetectionLoop();
+            } catch (fallbackErr) {
+                faceLiveTag.innerText = "Camera Permission Denied";
+                feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+                feedbackBanner.innerText = "Camera access denied. Please grant camera permissions.";
+                feedbackBanner.classList.remove("d-none");
+                overrideSection.classList.remove("d-none");
+                console.error("Camera error:", fallbackErr);
+            }
+        }
+    }
+
+    if (flipCamBtn) {
+        flipCamBtn.addEventListener("click", async () => {
+            flipCamBtn.disabled = true;
+            const nextMode = (currentFacingMode === "user") ? "environment" : "user";
+            await startCamera(nextMode);
+            flipCamBtn.disabled = false;
+        });
+    }
+
+    // 3. Continuous AI Face Detection Loop
+    function startDetectionLoop() {
+        if (!modelsLoaded || !video) return;
+        if (detectInterval) clearInterval(detectInterval);
+
+        detectInterval = setInterval(async () => {
+            if (video.paused || video.ended || video.readyState < 2) return;
+
+            const vw = video.videoWidth || 340;
+            const vh = video.videoHeight || 280;
+            canvas.width = vw;
+            canvas.height = vh;
+
+            const displaySize = { width: vw, height: vh };
+            faceapi.matchDimensions(canvas, displaySize);
+
+            try {
+                const detection = await faceapi
+                    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.35 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (detection) {
+                    guideOval.style.borderColor = "#22c55e"; // Green outline
+                    currentDescriptor = Array.from(detection.descriptor);
+                    faceInput.value = JSON.stringify(currentDescriptor);
+                    faceDetected = true;
+
+                    faceLiveTag.innerText = "Face Detected & Aligned";
+                    faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-success text-white px-3 py-1 small";
+
+                    faceStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
+                    faceIcon.className = "bi bi-check-circle-fill text-success me-1";
+                    faceStatusText.innerText = "Face Detected";
+
+                    if (quickEnrollBtn) {
+                        quickEnrollBtn.disabled = false;
+                    }
+                } else {
+                    guideOval.style.borderColor = "#4f46e5";
+                    faceDetected = false;
+                    faceLiveTag.innerText = "Position Face Inside Oval";
+                    faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small";
+
+                    faceStatusCard.className = "p-2 border rounded bg-light text-secondary text-center small";
+                    faceIcon.className = "bi bi-person-bounding-box text-warning me-1";
+                    faceStatusText.innerText = "Scanning...";
+
+                    if (quickEnrollBtn) {
+                        quickEnrollBtn.disabled = true;
+                    }
+                }
+                updateSubmitState();
+            } catch (detErr) {
+                console.error("Detection cycle error:", detErr);
+            }
+        }, 150);
+    }
+
+    if (video) {
+        // Handle playback events to kick off detection
+        video.addEventListener("play", startDetectionLoop);
+        video.addEventListener("loadedmetadata", startDetectionLoop);
+
+        // Start video stream
+        await startCamera("user");
+
+        // Load AI Models
+        const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/";
+        try {
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            modelsLoaded = true;
+            faceLiveTag.innerText = "AI Ready - Position Face";
+            startDetectionLoop();
+        } catch (err) {
+            faceLiveTag.innerText = "AI Models Failed to Load";
+            console.error("Model error:", err);
+        }
+    }
+
+    // 4. Quick 1-Click Face Enrollment from Attendance Screen
+    if (quickEnrollBtn) {
+        quickEnrollBtn.addEventListener("click", async function () {
+            if (!currentDescriptor) {
+                alert("Please look into the camera until your face is detected in the oval.");
+                return;
+            }
+
+            quickEnrollBtn.disabled = true;
+            quickEnrollBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registering Face Profile...';
+
+            try {
+                const csrfToken = "{{ csrf_token }}";
+                const response = await fetch("{% url 'enroll_face' pk=user.pk %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({
+                        samples: [currentDescriptor]
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    isFaceEnrolled = true;
+                    document.getElementById("enrollBadge").className = "badge bg-white text-primary";
+                    document.getElementById("enrollBadge").innerHTML = '<i class="bi bi-shield-check me-1"></i> Face Enrolled';
+                    quickEnrollSection.classList.add("d-none");
+
+                    feedbackBanner.className = "alert alert-success py-2 mb-3 small";
+                    feedbackBanner.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> <strong>Face profile enrolled successfully!</strong> You can now confirm your check-in.`;
+                    feedbackBanner.classList.remove("d-none");
+
+                    updateSubmitState();
+                } else {
+                    throw new Error(result.message || "Enrollment failed.");
+                }
+            } catch (err) {
+                feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+                feedbackBanner.innerText = `Enrollment error: ${err.message}`;
+                feedbackBanner.classList.remove("d-none");
+                quickEnrollBtn.disabled = false;
+                quickEnrollBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i> Retry Registration';
+            }
+        });
+    }
+
+    // 5. Form Submit with AJAX
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Verifying Attendance...';
+
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch("{% url 'attendance:attendance_list' %}", {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                feedbackBanner.className = "alert alert-success py-3 mb-3";
+                feedbackBanner.innerHTML = `<i class="bi bi-check-circle-fill me-2 fs-5"></i> <strong>${data.message}</strong><br><small>Reloading...</small>`;
+                feedbackBanner.classList.remove("d-none");
+
+                if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            } else {
+                failedAttempts++;
+                feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+                feedbackBanner.innerText = data.message || "Attendance check-in failed.";
+                feedbackBanner.classList.remove("d-none");
+
+                if (failedAttempts >= 2) {
+                    overrideSection.classList.remove("d-none");
+                }
+
+                updateSubmitState();
+            }
+        } catch (err) {
+            feedbackBanner.className = "alert alert-danger py-2 mb-3 small";
+            feedbackBanner.innerText = "Network error. Please try again.";
+            feedbackBanner.classList.remove("d-none");
+            updateSubmitState();
         }
     });
+
+    // 6. Supervisor Override
+    if (overrideBtn) {
+        overrideBtn.addEventListener("click", function () {
+            if (!gpsVerified) {
+                alert("Location verification is required even with supervisor override.");
+                return;
+            }
+            if (confirm("Submit check-in with Supervisor Override requested?")) {
+                overrideInput.value = "true";
+                form.requestSubmit();
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

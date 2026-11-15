@@ -10,16 +10,13 @@ def attendance_status(request):
         'show_attendance_popup': False
     }
     
-    if request.user.is_authenticated and request.user.role in ['BASIC', 'ELEVATED']:
+    if request.user.is_authenticated:
         today = get_ist_date()
         # Check if any attendance record exists for today (PRESENT, LEAVE, etc.)
         exists = Attendance.objects.filter(worker=request.user, date=today).exists()
         context['attendance_marked'] = exists
         
-        # Logic for auto-popup: 
-        # If not marked, we want to show the popup.
-        # We can refine this to only show on specific pages if needed, 
-        # but the request says "Checkin button to open a popup... The popup should open when ... login"
+        # Auto-popup prompt to direct user to Face Scanner check-in
         if not exists:
             context['show_attendance_popup'] = True
             

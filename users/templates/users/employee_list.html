@@ -98,14 +98,14 @@
         const rows = document.querySelectorAll('#employeeTableBody .employee-row');
 
         rows.forEach(row => {
-            const name = row.getAttribute('data-name') || '';
-            const role = row.getAttribute('data-role') || '';
-            const site = row.getAttribute('data-site') || '';
-            const status = row.getAttribute('data-status') || ''; // 'active' or 'inactive'
+            const name = row.getAttribute('data-name')|| '';
+            const role = row.getAttribute('data-role')|| '';
+            const site = row.getAttribute('data-site')|| '';
+            const status = row.getAttribute('data-status')|| ''; // 'active' or 'inactive'
 
             let matchesSearch = name.toLowerCase().includes(searchVal);
-            let matchesRole = roleVal === '' || role === roleVal;
-            let matchesSite = siteVal === '' || site === siteVal;
+            let matchesRole = roleVal === ''|| role === roleVal;
+            let matchesSite = siteVal === ''|| site === siteVal;
 
             let matchesStatus = true;
             if (statusVal === 'active') {

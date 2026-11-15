@@ -98,6 +98,9 @@ fix_*.py
 clean_*.py
 join_*.py
 final_*.py
+design_fixer.py
+ultimate_template_fixer.py
+scripts/*.json
 re_repair_*.py
 generate_*.py
 debug_*.py
