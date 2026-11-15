@@ -273,6 +273,7 @@
 
         // Biometric & Camera Variables
         let isFaceEnrolled = {{ user.is_face_enrolled|yesno:"true,false" }};
+        let enrolledDescriptor = {{ enrolled_embedding_json|safe }};
         const video = document.getElementById("modalWebcam");
         const canvas = document.getElementById("modalCanvas");
         const guideOval = document.getElementById("modalGuideOval");
@@ -312,6 +313,8 @@
         let currentFacingMode = "user";
         let gpsVerified = false;
         let faceDetected = false;
+        let faceMatched = false;
+        let isInsideOval = false;
         let livenessVerified = false;
         let sawEyeClose = false;
         let earHistory = [];
@@ -351,10 +354,16 @@
             }
 
             if (isFaceEnrolled) {
-                if (!faceDetected) {
+                if (!faceDetected || !isInsideOval) {
                     submitBtn.disabled = true;
                     submitBtn.className = "btn btn-secondary btn-lg w-100 py-3 fw-bold";
-                    submitBtnText.innerText = "Align Face in Oval...";
+                    submitBtnText.innerText = "Center Face in Oval...";
+                    return;
+                }
+                if (!faceMatched) {
+                    submitBtn.disabled = true;
+                    submitBtn.className = "btn btn-danger btn-lg w-100 py-3 fw-bold";
+                    submitBtnText.innerHTML = '<i class="bi bi-x-circle me-1"></i> Face Mismatch - Profile Does Not Match';
                     return;
                 }
                 if (!livenessVerified) {
@@ -362,12 +371,12 @@
                     submitBtn.className = "btn btn-warning btn-lg w-100 py-3 fw-bold text-dark";
                     submitBtnText.innerHTML = sawEyeClose ?
                         '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink detected! Open eyes...' :
-                        '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink or close eyes briefly to confirm...';
+                        '<span class="spinner-grow spinner-grow-sm me-1"></span> Face Matched! Blink to confirm...';
                     return;
                 }
                 submitBtn.disabled = false;
                 submitBtn.className = "btn btn-success btn-lg w-100 py-3 fw-bold";
-                submitBtnText.innerHTML = '<i class="bi bi-shield-check me-1"></i> Confirm Check-In (Live Face & GPS)';
+                submitBtnText.innerHTML = '<i class="bi bi-shield-check me-1"></i> Confirm Check-In (Verified)';
             } else {
                 // Not enrolled yet
                 submitBtn.disabled = false;
@@ -498,9 +507,67 @@
                     if (detection) {
                         currentDescriptor = Array.from(detection.descriptor);
                         if (faceInput) faceInput.value = JSON.stringify(currentDescriptor);
+
+                        // 1. Verify Face Position: Must be centered inside guideline oval
+                        const box = detection.detection.box;
+                        const faceCenterX = box.x + box.width / 2;
+                        const faceCenterY = box.y + box.height / 2;
+                        const xOffset = Math.abs(faceCenterX - vw / 2);
+                        const yOffset = Math.abs(faceCenterY - vh / 2);
+                        isInsideOval = (xOffset < (vw * 0.24)) && (yOffset < (vh * 0.28)) && (box.width >= (vw * 0.18)) && (box.width <= (vw * 0.78));
+
+                        if (!isInsideOval) {
+                            faceDetected = false;
+                            faceMatched = false;
+                            sawEyeClose = false;
+                            livenessVerified = false;
+                            earHistory = [];
+
+                            if (guideOval) guideOval.style.borderColor = "#4f46e5";
+                            if (faceLiveTag) {
+                                faceLiveTag.innerText = "Center Face Inside Oval";
+                                faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white px-3 py-1 small";
+                            }
+                            if (faceStatusCard) {
+                                faceStatusCard.className = "p-2 border rounded bg-light text-secondary text-center small";
+                                if (faceIcon) faceIcon.className = "bi bi-person-bounding-box text-warning me-1";
+                                if (faceStatusText) faceStatusText.innerText = "Center Face in Oval";
+                            }
+                            updateSubmitState();
+                            return;
+                        }
+
                         faceDetected = true;
 
-                        // --- Active Blink Liveness Detection ---
+                        // 2. Real-time Facial Match Verification against Enrolled Profile
+                        let matchScore = 1.0;
+                        if (isFaceEnrolled && enrolledDescriptor && Array.isArray(enrolledDescriptor) && enrolledDescriptor.length === 128) {
+                            matchScore = faceapi.euclideanDistance(currentDescriptor, enrolledDescriptor);
+                            faceMatched = (matchScore <= 0.52);
+                        } else {
+                            faceMatched = true; // Fallback for un-enrolled worker
+                        }
+
+                        if (!faceMatched) {
+                            sawEyeClose = false;
+                            livenessVerified = false;
+                            earHistory = [];
+
+                            if (guideOval) guideOval.style.borderColor = "#ef4444"; // Red for mismatch
+                            if (faceLiveTag) {
+                                faceLiveTag.innerText = `Face Mismatch (${matchScore.toFixed(2)}) - Wrong Person`;
+                                faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-danger text-white px-3 py-1 small shadow-sm";
+                            }
+                            if (faceStatusCard) {
+                                faceStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
+                                if (faceIcon) faceIcon.className = "bi bi-x-circle-fill text-danger me-1";
+                                if (faceStatusText) faceStatusText.innerText = `Mismatch (${matchScore.toFixed(2)})`;
+                            }
+                            updateSubmitState();
+                            return;
+                        }
+
+                        // 3. Active Blink Liveness Detection (Only runs once Face is Inside Oval AND Face is Matched!)
                         if (isFaceEnrolled) {
                             try {
                                 const leftEye = detection.landmarks.getLeftEye();
@@ -517,7 +584,7 @@
                                 const diff = maxRecent - minRecent;
 
                                 if (!livenessVerified) {
-                                    // Eye closure detected: EAR drops below 0.21 OR dips by 18%+ from recent peak
+                                    // Eye closure detected: EAR drops below 0.205 OR dips by 18%+ from recent peak
                                     if (avgEAR <= 0.205 || (maxRecent >= 0.22 && avgEAR <= maxRecent * 0.80)) {
                                         sawEyeClose = true;
                                     }
@@ -550,28 +617,28 @@
                         }
 
                         if (livenessVerified) {
-                            if (guideOval) guideOval.style.borderColor = "#22c55e";
+                            if (guideOval) guideOval.style.borderColor = "#22c55e"; // Green
                             if (faceLiveTag) {
-                                faceLiveTag.innerText = "✓ Live Person Confirmed";
+                                faceLiveTag.innerText = `✓ Verified (${matchScore.toFixed(2)}) - Live Match`;
                                 faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-success text-white px-3 py-1 small shadow-sm";
                             }
                             if (faceStatusCard) {
                                 faceStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
                                 if (faceIcon) faceIcon.className = "bi bi-shield-check text-success me-1";
-                                if (faceStatusText) faceStatusText.innerText = "Live Face Verified";
+                                if (faceStatusText) faceStatusText.innerText = `Matched (${matchScore.toFixed(2)})`;
                             }
                         } else {
                             if (guideOval) guideOval.style.borderColor = "#f59e0b"; // Warning orange
                             if (faceLiveTag) {
                                 faceLiveTag.innerHTML = sawEyeClose ?
                                     '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink detected! Open eyes...' :
-                                    '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink or close eyes briefly';
+                                    '<span class="spinner-grow spinner-grow-sm me-1"></span> Face Matched! Blink to confirm...';
                                 faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-warning text-dark px-3 py-1 small shadow-sm";
                             }
                             if (faceStatusCard) {
                                 faceStatusCard.className = "p-2 border rounded bg-warning bg-opacity-10 text-warning-emphasis text-center small";
                                 if (faceIcon) faceIcon.className = "bi bi-eye text-warning me-1";
-                                if (faceStatusText) faceStatusText.innerText = sawEyeClose ? "Opening..." : "Blink Eyes";
+                                if (faceStatusText) faceStatusText.innerText = sawEyeClose ? "Opening..." : "Blink to Confirm";
                             }
                         }
 
@@ -579,7 +646,10 @@
                     } else {
                         if (guideOval) guideOval.style.borderColor = "#4f46e5";
                         faceDetected = false;
+                        faceMatched = false;
+                        isInsideOval = false;
                         sawEyeClose = false;
+                        livenessVerified = false;
                         earHistory = [];
 
                         if (faceLiveTag) {
@@ -590,7 +660,7 @@
                         if (faceStatusCard) {
                             faceStatusCard.className = "p-2 border rounded bg-light text-secondary text-center small";
                             if (faceIcon) faceIcon.className = "bi bi-person-bounding-box text-warning me-1";
-                            if (faceStatusText) faceStatusText.innerText = "Scanning...";
+                            if (faceStatusText) faceStatusText.innerText = "Scanning Face...";
                         }
 
                         if (quickEnrollBtn) quickEnrollBtn.disabled = true;

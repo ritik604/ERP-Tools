@@ -11,6 +11,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 import csv
+import json
 
 @login_required
 def attendance_list(request):
@@ -248,6 +249,7 @@ def attendance_list(request):
         'filter_start': start_date or '',
         'filter_end': end_date or '',
         'filter_status': status or '',
+        'enrolled_embedding_json': json.dumps(user.face_embedding) if user.is_face_enrolled and user.face_embedding else 'null',
     }
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
