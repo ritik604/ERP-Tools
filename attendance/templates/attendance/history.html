@@ -157,19 +157,6 @@
                 <!-- Feedback Alert Banner -->
                 <div id="modalFeedbackBanner" class="alert alert-info py-2 mb-3 small d-none"></div>
 
-                <!-- Dev Mode Simulate GPS Button -->
-                <div id="modalDevGpsPrompt" class="alert alert-light border py-2 mb-3 small d-none text-start">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="bi bi-laptop text-info me-1"></i>
-                            <span>Outside site radius during testing?</span>
-                        </div>
-                        <button type="button" id="modalMockGpsBtn" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-geo-fill"></i> Simulate On-Site
-                        </button>
-                    </div>
-                </div>
-
                 <!-- 1-Click Face Registration for Un-enrolled Users -->
                 <div id="modalQuickEnrollSection" class="card bg-warning bg-opacity-10 border border-warning p-3 mb-3 text-start small {% if user.is_face_enrolled %}d-none{% endif %}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -300,8 +287,6 @@
         const faceStatusText = document.getElementById("modalFaceStatusText");
 
         const feedbackBanner = document.getElementById("modalFeedbackBanner");
-        const devGpsPrompt = document.getElementById("modalDevGpsPrompt");
-        const mockGpsBtn = document.getElementById("modalMockGpsBtn");
 
         const quickEnrollSection = document.getElementById("modalQuickEnrollSection");
         const quickEnrollBtn = document.getElementById("modalQuickEnrollBtn");
@@ -391,7 +376,6 @@
                             gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
                             if (gpsIcon) gpsIcon.className = "bi bi-x-circle-fill text-danger me-1";
                             if (gpsStatusText) gpsStatusText.innerText = `Too Far (${dist}m > ${siteRad}m)`;
-                            if (devGpsPrompt) devGpsPrompt.classList.remove("d-none");
                         }
                         updateSubmitState();
                     },
@@ -400,28 +384,13 @@
                         gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
                         if (gpsIcon) gpsIcon.className = "bi bi-x-circle text-danger me-1";
                         if (gpsStatusText) gpsStatusText.innerText = "GPS Blocked";
-                        if (devGpsPrompt) devGpsPrompt.classList.remove("d-none");
                         updateSubmitState();
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             } else {
                 if (gpsStatusText) gpsStatusText.innerText = "GPS Not Supported";
-                if (devGpsPrompt) devGpsPrompt.classList.remove("d-none");
             }
-        }
-
-        if (mockGpsBtn) {
-            mockGpsBtn.addEventListener("click", function () {
-                if (latInput) latInput.value = siteLat;
-                if (lonInput) lonInput.value = siteLon;
-                gpsVerified = true;
-                gpsStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
-                if (gpsIcon) gpsIcon.className = "bi bi-check-circle-fill text-success me-1";
-                if (gpsStatusText) gpsStatusText.innerText = "GPS Simulated (On-Site)";
-                if (devGpsPrompt) devGpsPrompt.classList.add("d-none");
-                updateSubmitState();
-            });
         }
 
         async function startCamera(facingMode = "user") {

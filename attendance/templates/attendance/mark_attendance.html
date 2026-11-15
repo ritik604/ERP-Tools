@@ -101,19 +101,6 @@
                     <!-- Feedback Banner -->
                     <div id="feedbackBanner" class="alert alert-info py-2 mb-3 small d-none"></div>
 
-                    <!-- Dev Mode Helper: Simulate Location if GPS is far away during local testing -->
-                    <div id="devGpsPrompt" class="alert alert-light border py-2 mb-3 small d-none text-start">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="bi bi-laptop text-info me-1"></i>
-                                <span>Testing on PC? Your GPS is outside site radius.</span>
-                            </div>
-                            <button type="button" id="mockGpsBtn" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-geo-fill"></i> Simulate On-Site
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- 1-Click Face Enrollment Prompt for Un-enrolled Users -->
                     <div id="quickEnrollSection" class="card bg-warning bg-opacity-10 border border-warning p-3 mb-3 text-start small {% if user.is_face_enrolled %}d-none{% endif %}">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -250,8 +237,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const overrideInput = document.getElementById("requestOverride");
     const overrideBtn = document.getElementById("overrideBtn");
     const overrideSection = document.getElementById("overrideSection");
-    const devGpsPrompt = document.getElementById("devGpsPrompt");
-    const mockGpsBtn = document.getElementById("mockGpsBtn");
 
     const quickEnrollSection = document.getElementById("quickEnrollSection");
     const quickEnrollBtn = document.getElementById("quickEnrollBtn");
@@ -343,7 +328,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                     gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
                     gpsIcon.className = "bi bi-x-circle-fill text-danger me-1";
                     gpsStatusText.innerText = `Too Far (${dist}m > ${siteRad}m)`;
-                    devGpsPrompt.classList.remove("d-none");
                 }
                 updateSubmitState();
             },
@@ -352,28 +336,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                 gpsStatusCard.className = "p-2 border rounded bg-danger bg-opacity-10 text-danger text-center small";
                 gpsIcon.className = "bi bi-x-circle text-danger me-1";
                 gpsStatusText.innerText = "GPS Blocked";
-                devGpsPrompt.classList.remove("d-none");
                 updateSubmitState();
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     } else {
         gpsStatusText.innerText = "GPS Not Supported";
-        devGpsPrompt.classList.remove("d-none");
-    }
-
-    // Dev mode Mock GPS Button
-    if (mockGpsBtn) {
-        mockGpsBtn.addEventListener("click", function () {
-            latInput.value = siteLat;
-            lonInput.value = siteLon;
-            gpsVerified = true;
-            gpsStatusCard.className = "p-2 border rounded bg-success bg-opacity-10 text-success text-center small";
-            gpsIcon.className = "bi bi-check-circle-fill text-success me-1";
-            gpsStatusText.innerText = "GPS Simulated (On-Site)";
-            devGpsPrompt.classList.add("d-none");
-            updateSubmitState();
-        });
     }
 
     // 2. Camera Management with Flip Support
