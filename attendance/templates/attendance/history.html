@@ -313,7 +313,8 @@
         let gpsVerified = false;
         let faceDetected = false;
         let livenessVerified = false;
-        let blinkStage = 0; // 0: init, 1: open confirmed, 2: closed in blink, 3: completed
+        let sawEyeClose = false;
+        let earHistory = [];
         let currentDescriptor = null;
         let failedAttempts = 0;
         let videoStream = null;
@@ -359,7 +360,9 @@
                 if (!livenessVerified) {
                     submitBtn.disabled = true;
                     submitBtn.className = "btn btn-warning btn-lg w-100 py-3 fw-bold text-dark";
-                    submitBtnText.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1"></span> Please Blink Naturally to Confirm Liveness...';
+                    submitBtnText.innerHTML = sawEyeClose ?
+                        '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink detected! Open eyes...' :
+                        '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink or close eyes briefly to confirm...';
                     return;
                 }
                 submitBtn.disabled = false;
@@ -506,16 +509,29 @@
                                 const rightEAR = getEyeAspectRatio(rightEye);
                                 const avgEAR = (leftEAR + rightEAR) / 2.0;
 
+                                earHistory.push(avgEAR);
+                                if (earHistory.length > 25) earHistory.shift();
+
+                                const maxRecent = Math.max(...earHistory);
+                                const minRecent = Math.min(...earHistory);
+                                const diff = maxRecent - minRecent;
+
                                 if (!livenessVerified) {
-                                    if (blinkStage === 0 && avgEAR >= 0.22) {
-                                        blinkStage = 1; // Open eyes registered
-                                    } else if (blinkStage === 1 && avgEAR < 0.18) {
-                                        blinkStage = 2; // Eyes closed in natural blink
-                                    } else if (blinkStage === 2 && avgEAR >= 0.22) {
-                                        blinkStage = 3; // Eyes opened back up -> Blink cycle verified!
+                                    // Eye closure detected: EAR drops below 0.21 OR dips by 18%+ from recent peak
+                                    if (avgEAR <= 0.205 || (maxRecent >= 0.22 && avgEAR <= maxRecent * 0.80)) {
+                                        sawEyeClose = true;
+                                    }
+
+                                    // Liveness confirmed: eyes re-open after being closed, OR a dynamic drop of >= 0.04
+                                    if (sawEyeClose && (avgEAR >= 0.21 || avgEAR >= maxRecent * 0.88)) {
                                         livenessVerified = true;
                                         if (livenessInput) livenessInput.value = "true";
+                                    } else if (earHistory.length >= 6 && diff >= 0.04 && avgEAR >= 0.21) {
+                                        livenessVerified = true;
+                                        if (livenessInput) livenessInput.value = "true";
+                                    }
 
+                                    if (livenessVerified) {
                                         // Snapshot frame for audit
                                         try {
                                             const snapCanvas = document.createElement("canvas");
@@ -527,7 +543,7 @@
                                     }
                                 }
                             } catch (earErr) {
-                                console.warn("Liveness check:", earErr);
+                                console.warn("Liveness check error:", earErr);
                             }
                         } else {
                             livenessVerified = true;
@@ -547,13 +563,15 @@
                         } else {
                             if (guideOval) guideOval.style.borderColor = "#f59e0b"; // Warning orange
                             if (faceLiveTag) {
-                                faceLiveTag.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1"></span> Please Blink Naturally';
+                                faceLiveTag.innerHTML = sawEyeClose ?
+                                    '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink detected! Open eyes...' :
+                                    '<span class="spinner-grow spinner-grow-sm me-1"></span> Blink or close eyes briefly';
                                 faceLiveTag.className = "position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-warning text-dark px-3 py-1 small shadow-sm";
                             }
                             if (faceStatusCard) {
                                 faceStatusCard.className = "p-2 border rounded bg-warning bg-opacity-10 text-warning-emphasis text-center small";
                                 if (faceIcon) faceIcon.className = "bi bi-eye text-warning me-1";
-                                if (faceStatusText) faceStatusText.innerText = "Blink to Verify";
+                                if (faceStatusText) faceStatusText.innerText = sawEyeClose ? "Opening..." : "Blink Eyes";
                             }
                         }
 
@@ -561,7 +579,8 @@
                     } else {
                         if (guideOval) guideOval.style.borderColor = "#4f46e5";
                         faceDetected = false;
-                        blinkStage = 0;
+                        sawEyeClose = false;
+                        earHistory = [];
 
                         if (faceLiveTag) {
                             faceLiveTag.innerText = "Position Face Inside Oval";
@@ -580,7 +599,7 @@
                 } catch (detErr) {
                     console.error("Detection cycle error:", detErr);
                 }
-            }, 150);
+            }, 75);
         }
 
         async function loadModels() {
